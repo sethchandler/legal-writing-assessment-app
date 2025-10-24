@@ -1,0 +1,1674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legal Writing Assessment Tool</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- Mammoth for DOCX -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <!-- JSZip for creating zip files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .mode-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            background: #f7fafc;
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .mode-button {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid transparent;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .mode-button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .required {
+            color: #e53e3e;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .file-upload-zone {
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #f7fafc;
+            position: relative;
+        }
+
+        .file-upload-zone:hover {
+            border-color: #667eea;
+            background: #edf2f7;
+        }
+
+        .file-upload-zone.dragover {
+            border-color: #667eea;
+            background: #eef2ff;
+        }
+
+        .file-upload-zone.has-files {
+            border-color: #48bb78;
+            background: #f0fff4;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .file-list {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .file-item-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .file-icon {
+            font-size: 24px;
+        }
+
+        .file-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .file-size {
+            color: #718096;
+            font-size: 12px;
+        }
+
+        .file-status {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .file-status.pending {
+            background: #fef5e7;
+            color: #d68910;
+        }
+
+        .file-status.processing {
+            background: #ebf4ff;
+            color: #3182ce;
+        }
+
+        .file-status.complete {
+            background: #f0fff4;
+            color: #38a169;
+        }
+
+        .file-status.error {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .remove-file {
+            padding: 6px 12px;
+            background: #fed7d7;
+            color: #c53030;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+
+        .remove-file:hover {
+            background: #fc8181;
+        }
+
+        .ai-config {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .provider-select {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .provider-option {
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        .provider-option:hover {
+            border-color: #667eea;
+        }
+
+        .provider-option.selected {
+            border-color: #667eea;
+            background: #eef2ff;
+            font-weight: 600;
+        }
+
+        .info-box {
+            background: #fff5e6;
+            border-left: 4px solid #f59e0b;
+            padding: 12px 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #92400e;
+            margin-top: 10px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .secondary-button {
+            background: #e2e8f0;
+            color: #333;
+        }
+
+        .secondary-button:hover:not(:disabled) {
+            background: #cbd5e0;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .progress-container {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 8px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e2e8f0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .progress-text {
+            text-align: center;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .error {
+            background: #fed7d7;
+            border: 1px solid #fc8181;
+            color: #742a2a;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .results-summary {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f0fff4;
+            border: 1px solid #9ae6b4;
+            border-radius: 8px;
+        }
+
+        .results-summary h3 {
+            color: #22543d;
+            margin-bottom: 10px;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            padding: 0 20px;
+        }
+
+        .step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+
+        .step::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            width: 100%;
+            height: 2px;
+            background: #e2e8f0;
+            z-index: -1;
+        }
+
+        .step:first-child::before {
+            display: none;
+        }
+
+        .step-circle {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            color: #a0aec0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .step.active .step-circle {
+            background: #667eea;
+            color: white;
+        }
+
+        .step.completed .step-circle {
+            background: #48bb78;
+            color: white;
+        }
+
+        .step-label {
+            font-size: 12px;
+            color: #a0aec0;
+        }
+
+        .step.active .step-label {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .batch-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .batch-controls button {
+            flex: 1;
+        }
+
+        .status-message {
+            background: #ebf4ff;
+            border-left: 4px solid #3182ce;
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: #2c5282;
+        }
+
+        .timer-display {
+            background: #f7fafc;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #4a5568;
+            display: inline-block;
+        }
+
+        .input-mode-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            padding: 4px;
+            background: #e2e8f0;
+            border-radius: 6px;
+            width: fit-content;
+        }
+
+        .input-mode-button {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: #4a5568;
+            transition: all 0.2s;
+        }
+
+        .input-mode-button.active {
+            background: white;
+            color: #667eea;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .json-input-area {
+            width: 100%;
+            min-height: 300px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: #1a202c;
+            color: #68d391;
+        }
+
+        .json-input-area:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .download-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .download-buttons button {
+            flex: 1;
+        }
+
+        .icon-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Initialize PDF.js worker
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
+        function App() {
+            const [mode, setMode] = useState('single'); // 'single' or 'batch'
+            const [inputMode, setInputMode] = useState('form'); // 'form' or 'json'
+            const [step, setStep] = useState(1);
+            const [formData, setFormData] = useState({
+                question: '',
+                studentAnswer: '',
+                modelAnswer: '',
+                rubric: ''
+            });
+            const [jsonInput, setJsonInput] = useState('');
+            const [provider, setProvider] = useState('anthropic');
+            const [apiKey, setApiKey] = useState('');
+            const [model, setModel] = useState('claude-sonnet-4-5-20250929');
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState('');
+            const [statusMessage, setStatusMessage] = useState('');
+            const [elapsedTime, setElapsedTime] = useState(0);
+            const [jsonData, setJsonData] = useState(null);
+            const [assessment, setAssessment] = useState(null);
+            const timerRef = useRef(null);
+            
+            // Batch mode states
+            const [batchFiles, setBatchFiles] = useState([]);
+            const [processingProgress, setProcessingProgress] = useState(0);
+            const [currentlyProcessing, setCurrentlyProcessing] = useState('');
+            const [processedCount, setProcessedCount] = useState(0);
+            const [totalCount, setTotalCount] = useState(0);
+            const [batchResults, setBatchResults] = useState([]);
+            const fileInputRef = useRef(null);
+            const jsonFileInputRef = useRef(null);
+
+            // Load API key from localStorage
+            useEffect(() => {
+                const savedKey = localStorage.getItem(`apiKey_${provider}`);
+                if (savedKey) setApiKey(savedKey);
+            }, [provider]);
+
+            // Timer for showing elapsed time during processing
+            useEffect(() => {
+                if (loading) {
+                    setElapsedTime(0);
+                    timerRef.current = setInterval(() => {
+                        setElapsedTime(prev => prev + 1);
+                    }, 1000);
+                } else {
+                    if (timerRef.current) {
+                        clearInterval(timerRef.current);
+                    }
+                }
+                return () => {
+                    if (timerRef.current) {
+                        clearInterval(timerRef.current);
+                    }
+                };
+            }, [loading]);
+
+            // Save API key to localStorage
+            const handleApiKeyChange = (value) => {
+                setApiKey(value);
+                if (value) {
+                    localStorage.setItem(`apiKey_${provider}`, value);
+                }
+            };
+
+            const handleInputChange = (field, value) => {
+                setFormData(prev => ({ ...prev, [field]: value }));
+            };
+
+            // File parsing functions
+            const parseTextFile = async (file) => {
+                return await file.text();
+            };
+
+            const parseMarkdownFile = async (file) => {
+                return await file.text();
+            };
+
+            const parsePDFFile = async (file) => {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    let fullText = '';
+                    
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const textContent = await page.getTextContent();
+                        const pageText = textContent.items.map(item => item.str).join(' ');
+                        fullText += pageText + '\n';
+                    }
+                    
+                    return fullText;
+                } catch (err) {
+                    throw new Error(`PDF parsing failed: ${err.message}`);
+                }
+            };
+
+            const parseDOCXFile = async (file) => {
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const result = await mammoth.extractRawText({ arrayBuffer });
+                    return result.value;
+                } catch (err) {
+                    throw new Error(`DOCX parsing failed: ${err.message}`);
+                }
+            };
+
+            const parseFile = async (file) => {
+                const extension = file.name.split('.').pop().toLowerCase();
+                
+                switch (extension) {
+                    case 'txt':
+                        return await parseTextFile(file);
+                    case 'md':
+                    case 'markdown':
+                        return await parseMarkdownFile(file);
+                    case 'pdf':
+                        return await parsePDFFile(file);
+                    case 'docx':
+                        return await parseDOCXFile(file);
+                    default:
+                        throw new Error(`Unsupported file type: .${extension}`);
+                }
+            };
+
+            const handleFileUpload = async (field, file) => {
+                try {
+                    const text = await parseFile(file);
+                    handleInputChange(field, text);
+                } catch (err) {
+                    setError(`Error reading ${file.name}: ${err.message}`);
+                }
+            };
+
+            // Batch mode file handling
+            const handleBatchFilesSelect = async (files) => {
+                const fileArray = Array.from(files);
+                const newFiles = fileArray.map(file => ({
+                    file,
+                    name: file.name,
+                    size: file.size,
+                    status: 'pending',
+                    content: null,
+                    result: null,
+                    error: null
+                }));
+                
+                setBatchFiles(prev => [...prev, ...newFiles]);
+            };
+
+            const handleDrop = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const files = e.dataTransfer.files;
+                handleBatchFilesSelect(files);
+            };
+
+            const handleDragOver = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            };
+
+            const removeFile = (index) => {
+                setBatchFiles(prev => prev.filter((_, i) => i !== index));
+            };
+
+            const getMissingFields = () => {
+                const missing = [];
+                if (!formData.question) missing.push('question');
+                if (!formData.modelAnswer) missing.push('modelAnswer');
+                if (!formData.rubric) missing.push('rubric');
+                return missing;
+            };
+
+            const generateMissingFields = async (studentAnswer) => {
+                const missing = getMissingFields();
+                let currentData = { ...formData, studentAnswer };
+
+                for (const field of missing) {
+                    if (field === 'question') {
+                        setStatusMessage('🤖 Generating question from student answer...');
+                        const prompt = `Given this student answer for a legal writing assessment, generate an appropriate legal exam question that this answer would be responding to. The question should be in IRAC or CREAC format and involve a realistic legal scenario.
+
+Student Answer:
+${currentData.studentAnswer}
+
+Generate ONLY the question text, no additional commentary.`;
+
+                        const response = await callLLM(prompt);
+                        currentData.question = response;
+                        setStatusMessage('✓ Question generated');
+                    }
+
+                    if (field === 'modelAnswer') {
+                        setStatusMessage('🤖 Generating model answer...');
+                        const prompt = `Given this legal exam question and student answer, generate a model answer that demonstrates excellent legal analysis in IRAC or CREAC format.
+
+Question:
+${currentData.question}
+
+Student Answer (for context):
+${currentData.studentAnswer}
+
+Generate ONLY the model answer text, no additional commentary.`;
+
+                        const response = await callLLM(prompt);
+                        currentData.modelAnswer = response;
+                        setStatusMessage('✓ Model answer generated');
+                    }
+
+                    if (field === 'rubric') {
+                        setStatusMessage('🤖 Generating grading rubric...');
+                        const prompt = `Generate a grading rubric for this legal writing assessment question. The rubric should evaluate:
+- Analytical Depth (50%)
+- Rule Statement (20%)
+- Issue Spotting (15%)
+- Organization (15%)
+
+Question:
+${currentData.question}
+
+Format the rubric with clear scoring criteria for each component.`;
+
+                        const response = await callLLM(prompt);
+                        currentData.rubric = response;
+                        setStatusMessage('✓ Rubric generated');
+                    }
+                }
+
+                setStatusMessage('✓ JSON structure created');
+                return currentData;
+            };
+
+            const performSingleAssessment = async (data) => {
+                setStatusMessage('🤖 Analyzing legal writing...');
+                const assessmentPrompt = `You are an expert legal writing professor. Assess this student's legal analysis answer using the provided question, model answer, and rubric.
+
+QUESTION:
+${data.question}
+
+STUDENT ANSWER:
+${data.studentAnswer}
+
+MODEL ANSWER:
+${data.modelAnswer}
+
+RUBRIC:
+${data.rubric}
+
+Provide a comprehensive assessment following the legal writing assessment skill framework.`;
+
+                const result = await callLLM(assessmentPrompt);
+                setStatusMessage('✓ Assessment complete');
+                return result;
+            };
+
+            // Single mode processing
+            const processSingleMode = async () => {
+                if (!apiKey) {
+                    setError('Please provide an API key first');
+                    return;
+                }
+
+                setLoading(true);
+                setError('');
+                setStatusMessage('Starting...');
+
+                try {
+                    let json;
+                    
+                    if (inputMode === 'json') {
+                        // Parse uploaded JSON
+                        setStatusMessage('📄 Parsing JSON input...');
+                        json = JSON.parse(jsonInput);
+                        setStatusMessage('✓ JSON parsed successfully');
+                    } else {
+                        // Generate from form
+                        setStatusMessage('📝 Creating assessment data...');
+                        const completeData = await generateMissingFields(formData.studentAnswer);
+                        
+                        json = {
+                            question: completeData.question,
+                            studentAnswer: completeData.studentAnswer,
+                            modelAnswer: completeData.modelAnswer,
+                            rubric: completeData.rubric,
+                            metadata: {
+                                generatedAt: new Date().toISOString(),
+                                generatedFields: getMissingFields()
+                            }
+                        };
+                    }
+
+                    setJsonData(json);
+                    setStep(2);
+                    setStatusMessage('');
+                } catch (err) {
+                    setError(err.message);
+                    setStatusMessage('');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const performSingleAssessmentStep = async () => {
+                if (!jsonData) return;
+
+                setLoading(true);
+                setError('');
+
+                try {
+                    const response = await performSingleAssessment(jsonData);
+                    setAssessment(response);
+                    setStep(3);
+                    setStatusMessage('');
+                } catch (err) {
+                    setError(err.message);
+                    setStatusMessage('');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const downloadJSON = (data, filename) => {
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+
+            const downloadText = (text, filename) => {
+                const blob = new Blob([text], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+
+            const handleJsonFileUpload = async (file) => {
+                try {
+                    const text = await file.text();
+                    setJsonInput(text);
+                    // Validate it's valid JSON
+                    JSON.parse(text);
+                    setError('');
+                } catch (err) {
+                    setError('Invalid JSON file: ' + err.message);
+                }
+            };
+
+            // Batch mode processing
+            const processBatchMode = async () => {
+                if (!apiKey) {
+                    setError('Please provide an API key first');
+                    return;
+                }
+
+                if (batchFiles.length === 0) {
+                    setError('Please upload at least one student answer file');
+                    return;
+                }
+
+                setLoading(true);
+                setError('');
+                setProcessingProgress(0);
+                setProcessedCount(0);
+                setTotalCount(batchFiles.length);
+                setBatchResults([]);
+
+                try {
+                    const results = [];
+                    
+                    for (let i = 0; i < batchFiles.length; i++) {
+                        const fileInfo = batchFiles[i];
+                        setCurrentlyProcessing(fileInfo.name);
+                        setProcessedCount(i);
+                        setStatusMessage(`Processing ${i + 1} of ${batchFiles.length}: ${fileInfo.name}`);
+                        
+                        // Update file status
+                        setBatchFiles(prev => prev.map((f, idx) => 
+                            idx === i ? { ...f, status: 'processing' } : f
+                        ));
+
+                        try {
+                            // Parse file
+                            const studentAnswer = await parseFile(fileInfo.file);
+                            
+                            // Generate missing fields
+                            const completeData = await generateMissingFields(studentAnswer);
+                            
+                            // Perform assessment
+                            const assessment = await performSingleAssessment(completeData);
+                            
+                            results.push({
+                                fileName: fileInfo.name,
+                                assessment,
+                                data: completeData,
+                                success: true
+                            });
+
+                            // Update file status to complete
+                            setBatchFiles(prev => prev.map((f, idx) => 
+                                idx === i ? { ...f, status: 'complete', result: assessment } : f
+                            ));
+
+                        } catch (err) {
+                            results.push({
+                                fileName: fileInfo.name,
+                                error: err.message,
+                                success: false
+                            });
+
+                            // Update file status to error
+                            setBatchFiles(prev => prev.map((f, idx) => 
+                                idx === i ? { ...f, status: 'error', error: err.message } : f
+                            ));
+                        }
+
+                        setProcessingProgress(((i + 1) / batchFiles.length) * 100);
+                        setProcessedCount(i + 1);
+                    }
+
+                    setBatchResults(results);
+                    setCurrentlyProcessing('');
+                    setStatusMessage(`✓ Completed: ${results.filter(r => r.success).length} successful, ${results.filter(r => !r.success).length} errors`);
+                    
+                } catch (err) {
+                    setError(err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const downloadBatchResults = async (format = 'text') => {
+                const zip = new JSZip();
+                
+                if (format === 'text') {
+                    // Text format - separate assessment files
+                    batchResults.forEach((result, index) => {
+                        if (result.success) {
+                            const fileName = result.fileName.replace(/\.[^/.]+$/, '') + '_assessment.txt';
+                            const content = `LEGAL WRITING ASSESSMENT
+========================
+
+Student File: ${result.fileName}
+Generated: ${new Date().toISOString()}
+
+QUESTION:
+${result.data.question}
+
+STUDENT ANSWER:
+${result.data.studentAnswer}
+
+MODEL ANSWER:
+${result.data.modelAnswer}
+
+RUBRIC:
+${result.data.rubric}
+
+ASSESSMENT:
+${result.assessment}
+`;
+                            zip.file(fileName, content);
+                        } else {
+                            const fileName = result.fileName.replace(/\.[^/.]+$/, '') + '_ERROR.txt';
+                            zip.file(fileName, `Error processing ${result.fileName}:\n${result.error}`);
+                        }
+                    });
+                } else {
+                    // JSON format - complete data structure
+                    batchResults.forEach((result, index) => {
+                        if (result.success) {
+                            const fileName = result.fileName.replace(/\.[^/.]+$/, '') + '_complete.json';
+                            const jsonContent = {
+                                studentFile: result.fileName,
+                                generatedAt: new Date().toISOString(),
+                                question: result.data.question,
+                                studentAnswer: result.data.studentAnswer,
+                                modelAnswer: result.data.modelAnswer,
+                                rubric: result.data.rubric,
+                                assessment: result.assessment
+                            };
+                            zip.file(fileName, JSON.stringify(jsonContent, null, 2));
+                        } else {
+                            const fileName = result.fileName.replace(/\.[^/.]+$/, '') + '_ERROR.json';
+                            const errorContent = {
+                                studentFile: result.fileName,
+                                success: false,
+                                error: result.error,
+                                timestamp: new Date().toISOString()
+                            };
+                            zip.file(fileName, JSON.stringify(errorContent, null, 2));
+                        }
+                    });
+                }
+
+                const blob = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const timestamp = new Date().toISOString().split('T')[0];
+                a.download = `legal-assessments-${timestamp}-${format}.zip`;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+
+            const callLLM = async (prompt) => {
+                if (provider === 'anthropic') {
+                    const response = await fetch('https://api.anthropic.com/v1/messages', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-api-key': apiKey,
+                            'anthropic-version': '2023-06-01'
+                        },
+                        body: JSON.stringify({
+                            model: model,
+                            max_tokens: 4000,
+                            messages: [{ role: 'user', content: prompt }]
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error?.message || 'API request failed');
+                    }
+
+                    const data = await response.json();
+                    return data.content[0].text;
+                } else if (provider === 'openai') {
+                    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: model,
+                            messages: [{ role: 'user', content: prompt }],
+                            max_tokens: 4000
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error?.message || 'API request failed');
+                    }
+
+                    const data = await response.json();
+                    return data.choices[0].message.content;
+                } else if (provider === 'google') {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{ text: prompt }]
+                            }],
+                            generationConfig: {
+                                maxOutputTokens: 4000
+                            }
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error?.message || 'API request failed');
+                    }
+
+                    const data = await response.json();
+                    return data.candidates[0].content.parts[0].text;
+                } else if (provider === 'openrouter') {
+                    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`,
+                            'HTTP-Referer': window.location.href,
+                            'X-Title': 'Legal Writing Assessment Tool'
+                        },
+                        body: JSON.stringify({
+                            model: model,
+                            messages: [{ role: 'user', content: prompt }],
+                            max_tokens: 4000
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error?.message || 'API request failed');
+                    }
+
+                    const data = await response.json();
+                    return data.choices[0].message.content;
+                }
+            };
+
+            const resetForm = () => {
+                setStep(1);
+                setInputMode('form');
+                setFormData({
+                    question: '',
+                    studentAnswer: '',
+                    modelAnswer: '',
+                    rubric: ''
+                });
+                setJsonInput('');
+                setBatchFiles([]);
+                setJsonData(null);
+                setAssessment(null);
+                setBatchResults([]);
+                setError('');
+                setStatusMessage('');
+                setProcessingProgress(0);
+                setProcessedCount(0);
+                setTotalCount(0);
+            };
+
+            const formatFileSize = (bytes) => {
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+                return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+            };
+
+            const formatTime = (seconds) => {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                if (mins > 0) {
+                    return `${mins}m ${secs}s`;
+                }
+                return `${secs}s`;
+            };
+
+            const getFileIcon = (fileName) => {
+                const ext = fileName.split('.').pop().toLowerCase();
+                switch (ext) {
+                    case 'pdf': return '📄';
+                    case 'docx': return '📝';
+                    case 'md': case 'markdown': return '📋';
+                    case 'txt': return '📃';
+                    default: return '📁';
+                }
+            };
+
+            return (
+                <div className="container">
+                    <h1>Legal Writing Assessment Tool</h1>
+                    <p className="subtitle">Evaluate legal analysis using IRAC/CREAC framework</p>
+
+                    <div className="mode-toggle">
+                        <button 
+                            className={`mode-button ${mode === 'single' ? 'active' : ''}`}
+                            onClick={() => { setMode('single'); resetForm(); }}
+                        >
+                            📝 Single Assessment
+                        </button>
+                        <button 
+                            className={`mode-button ${mode === 'batch' ? 'active' : ''}`}
+                            onClick={() => { setMode('batch'); resetForm(); }}
+                        >
+                            📚 Batch Processing
+                        </button>
+                    </div>
+
+                    <div className="section ai-config">
+                        <div className="section-title">AI Configuration</div>
+                        
+                        <label>LLM Provider</label>
+                        <div className="provider-select">
+                            <div 
+                                className={`provider-option ${provider === 'anthropic' ? 'selected' : ''}`}
+                                onClick={() => setProvider('anthropic')}
+                            >
+                                Anthropic
+                            </div>
+                            <div 
+                                className={`provider-option ${provider === 'openai' ? 'selected' : ''}`}
+                                onClick={() => setProvider('openai')}
+                            >
+                                OpenAI
+                            </div>
+                            <div 
+                                className={`provider-option ${provider === 'google' ? 'selected' : ''}`}
+                                onClick={() => setProvider('google')}
+                            >
+                                Google
+                            </div>
+                            <div 
+                                className={`provider-option ${provider === 'openrouter' ? 'selected' : ''}`}
+                                onClick={() => setProvider('openrouter')}
+                            >
+                                OpenRouter
+                            </div>
+                        </div>
+
+                        <label>API Key <span className="required">*</span></label>
+                        <input
+                            type="password"
+                            value={apiKey}
+                            onChange={(e) => handleApiKeyChange(e.target.value)}
+                            placeholder={`Enter your ${provider === 'anthropic' ? 'Anthropic' : provider === 'openai' ? 'OpenAI' : provider === 'google' ? 'Google AI' : 'OpenRouter'} API key`}
+                        />
+                        
+                        <label style={{marginTop: '15px'}}>Model</label>
+                        <select value={model} onChange={(e) => setModel(e.target.value)}>
+                            {provider === 'anthropic' ? (
+                                <>
+                                    <option value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5</option>
+                                    <option value="claude-haiku-4-5">Claude Haiku 4.5</option>
+                                </>
+                            ) : provider === 'openai' ? (
+                                <>
+                                    <option value="gpt-5">GPT-5</option>
+                                    <option value="gpt-5-instant">GPT-5 Instant</option>
+                                    <option value="gpt-5-thinking">GPT-5 Thinking</option>
+                                    <option value="gpt-5-chat">GPT-5 Chat</option>
+                                    <option value="gpt-4.1">GPT-4.1</option>
+                                    <option value="gpt-5-mini">GPT-5 Mini</option>
+                                    <option value="gpt-5-nano">GPT-5 Nano</option>
+                                </>
+                            ) : provider === 'google' ? (
+                                <>
+                                    <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                                    <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+                                </>
+                            ) : (
+                                <>
+                                    <option value="anthropic/claude-sonnet-4-5-20250929">Claude Sonnet 4.5</option>
+                                    <option value="anthropic/claude-haiku-4-5">Claude Haiku 4.5</option>
+                                    <option value="openai/gpt-5">GPT-5</option>
+                                    <option value="openai/gpt-5-instant">GPT-5 Instant</option>
+                                    <option value="openai/gpt-5-thinking">GPT-5 Thinking</option>
+                                    <option value="openai/gpt-5-chat">GPT-5 Chat</option>
+                                    <option value="openai/gpt-4.1">GPT-4.1</option>
+                                    <option value="openai/gpt-5-mini">GPT-5 Mini</option>
+                                    <option value="openai/gpt-5-nano">GPT-5 Nano</option>
+                                    <option value="google/gemini-2.5-pro">Gemini 2.5 Pro</option>
+                                    <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
+                                    <option value="google/gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+                                    <option value="z-ai/glm-4.5:free">GLM-4.5 (Free)</option>
+                                </>
+                            )}
+                        </select>
+
+                        <div className="info-box">
+                            Supports: .txt, .md, .pdf, .docx files
+                        </div>
+                    </div>
+
+                    {mode === 'single' ? (
+                        // Single mode UI
+                        <>
+                            {step === 1 && (
+                                <>
+                                    <div className="input-mode-toggle">
+                                        <button
+                                            className={`input-mode-button ${inputMode === 'form' ? 'active' : ''}`}
+                                            onClick={() => setInputMode('form')}
+                                        >
+                                            📝 Form Input
+                                        </button>
+                                        <button
+                                            className={`input-mode-button ${inputMode === 'json' ? 'active' : ''}`}
+                                            onClick={() => setInputMode('json')}
+                                        >
+                                            📄 JSON Input
+                                        </button>
+                                    </div>
+
+                                    {inputMode === 'json' ? (
+                                        <div className="section">
+                                            <div className="section-title">
+                                                JSON Assessment Data <span className="required">*</span>
+                                            </div>
+                                            <p style={{fontSize: '13px', color: '#718096', marginBottom: '10px'}}>
+                                                Paste JSON with fields: question, studentAnswer, modelAnswer, rubric
+                                            </p>
+                                            <textarea
+                                                className="json-input-area"
+                                                value={jsonInput}
+                                                onChange={(e) => setJsonInput(e.target.value)}
+                                                placeholder={`{\n  "question": "...",\n  "studentAnswer": "...",\n  "modelAnswer": "...",\n  "rubric": "..."\n}`}
+                                            />
+                                            <input
+                                                ref={jsonFileInputRef}
+                                                type="file"
+                                                accept=".json"
+                                                onChange={(e) => e.target.files[0] && handleJsonFileUpload(e.target.files[0])}
+                                                style={{marginTop: '10px'}}
+                                            />
+                                            <p style={{fontSize: '12px', color: '#718096', marginTop: '5px'}}>
+                                                Or upload a .json file
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="section">
+                                                <div className="section-title">Question (Optional)</div>
+                                                <textarea
+                                                    value={formData.question}
+                                                    onChange={(e) => handleInputChange('question', e.target.value)}
+                                                    placeholder="Enter or upload the exam question..."
+                                                />
+                                                <input
+                                                    type="file"
+                                                    accept=".txt,.md,.pdf,.docx"
+                                                    onChange={(e) => e.target.files[0] && handleFileUpload('question', e.target.files[0])}
+                                                    style={{marginTop: '10px'}}
+                                                />
+                                            </div>
+
+                                            <div className="section">
+                                                <div className="section-title">
+                                                    Student Answer <span className="required">*</span>
+                                                </div>
+                                                <textarea
+                                                    value={formData.studentAnswer}
+                                                    onChange={(e) => handleInputChange('studentAnswer', e.target.value)}
+                                                    placeholder="Paste or upload student answer..."
+                                                    style={{minHeight: '200px'}}
+                                                />
+                                                <input
+                                                    type="file"
+                                                    accept=".txt,.md,.pdf,.docx"
+                                                    onChange={(e) => e.target.files[0] && handleFileUpload('studentAnswer', e.target.files[0])}
+                                                    style={{marginTop: '10px'}}
+                                                />
+                                            </div>
+
+                                            <div className="section">
+                                                <div className="section-title">Model Answer (Optional)</div>
+                                                <textarea
+                                                    value={formData.modelAnswer}
+                                                    onChange={(e) => handleInputChange('modelAnswer', e.target.value)}
+                                                    placeholder="Enter or upload model answer..."
+                                                />
+                                                <input
+                                                    type="file"
+                                                    accept=".txt,.md,.pdf,.docx"
+                                                    onChange={(e) => e.target.files[0] && handleFileUpload('modelAnswer', e.target.files[0])}
+                                                    style={{marginTop: '10px'}}
+                                                />
+                                            </div>
+
+                                            <div className="section">
+                                                <div className="section-title">Rubric (Optional)</div>
+                                                <textarea
+                                                    value={formData.rubric}
+                                                    onChange={(e) => handleInputChange('rubric', e.target.value)}
+                                                    placeholder="Enter or upload grading rubric..."
+                                                />
+                                                <input
+                                                    type="file"
+                                                    accept=".txt,.md,.pdf,.docx"
+                                                    onChange={(e) => e.target.files[0] && handleFileUpload('rubric', e.target.files[0])}
+                                                    style={{marginTop: '10px'}}
+                                                />
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {statusMessage && (
+                                        <div className="status-message">
+                                            {statusMessage}
+                                            {loading && <span className="timer-display">⏱ {formatTime(elapsedTime)}</span>}
+                                        </div>
+                                    )}
+
+                                    <button 
+                                        onClick={processSingleMode} 
+                                        disabled={(inputMode === 'form' && !formData.studentAnswer) || (inputMode === 'json' && !jsonInput) || !apiKey || loading}
+                                    >
+                                        {loading ? <span className="loading"></span> : 'Generate Assessment Data'}
+                                    </button>
+                                </>
+                            )}
+
+                            {step === 2 && jsonData && (
+                                <>
+                                    <div style={{padding: '20px', background: '#f0fff4', borderRadius: '8px', marginBottom: '20px'}}>
+                                        <h3 style={{color: '#22543d', marginBottom: '10px'}}>✓ Assessment Data Ready</h3>
+                                        <p style={{marginBottom: '15px'}}>JSON structure created successfully</p>
+                                        <div className="download-buttons">
+                                            <button 
+                                                onClick={() => downloadJSON(jsonData, 'assessment-data.json')}
+                                                className="secondary-button icon-button"
+                                            >
+                                                📥 Download JSON
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {statusMessage && (
+                                        <div className="status-message">
+                                            {statusMessage}
+                                            {loading && <span className="timer-display">⏱ {formatTime(elapsedTime)}</span>}
+                                        </div>
+                                    )}
+
+                                    <button onClick={performSingleAssessmentStep} disabled={loading}>
+                                        {loading ? <span className="loading"></span> : 'Perform Assessment'}
+                                    </button>
+                                    <button onClick={resetForm} className="secondary-button" style={{marginTop: '10px'}}>
+                                        Start Over
+                                    </button>
+                                </>
+                            )}
+
+                            {step === 3 && assessment && (
+                                <>
+                                    <div style={{padding: '30px', background: '#f7fafc', borderRadius: '12px'}}>
+                                        <h2 style={{marginBottom: '20px'}}>Assessment Results</h2>
+                                        <div style={{whiteSpace: 'pre-wrap', lineHeight: '1.8'}}>
+                                            {assessment}
+                                        </div>
+                                    </div>
+
+                                    <div className="download-buttons">
+                                        <button 
+                                            onClick={() => downloadText(assessment, 'assessment-feedback.txt')}
+                                            className="secondary-button icon-button"
+                                        >
+                                            📥 Download Assessment (TXT)
+                                        </button>
+                                        <button 
+                                            onClick={() => downloadJSON({...jsonData, assessment}, 'complete-assessment.json')}
+                                            className="secondary-button icon-button"
+                                        >
+                                            📥 Download Complete (JSON)
+                                        </button>
+                                    </div>
+
+                                    <button onClick={resetForm} style={{marginTop: '15px'}}>
+                                        Assess Another Answer
+                                    </button>
+                                </>
+                            )}
+                        </>
+                    ) : (
+                        // Batch mode UI
+                        <>
+                            <div className="section">
+                                <div className="section-title">Context Files (Optional)</div>
+                                
+                                <label>Question</label>
+                                <textarea
+                                    value={formData.question}
+                                    onChange={(e) => handleInputChange('question', e.target.value)}
+                                    placeholder="Enter or upload question (will be used for all assessments)..."
+                                    rows="3"
+                                />
+                                <input
+                                    type="file"
+                                    accept=".txt,.md,.pdf,.docx"
+                                    onChange={(e) => e.target.files[0] && handleFileUpload('question', e.target.files[0])}
+                                    style={{marginTop: '10px', marginBottom: '15px'}}
+                                />
+
+                                <label>Model Answer</label>
+                                <textarea
+                                    value={formData.modelAnswer}
+                                    onChange={(e) => handleInputChange('modelAnswer', e.target.value)}
+                                    placeholder="Enter or upload model answer (will be used for all assessments)..."
+                                    rows="3"
+                                />
+                                <input
+                                    type="file"
+                                    accept=".txt,.md,.pdf,.docx"
+                                    onChange={(e) => e.target.files[0] && handleFileUpload('modelAnswer', e.target.files[0])}
+                                    style={{marginTop: '10px', marginBottom: '15px'}}
+                                />
+
+                                <label>Rubric</label>
+                                <textarea
+                                    value={formData.rubric}
+                                    onChange={(e) => handleInputChange('rubric', e.target.value)}
+                                    placeholder="Enter or upload rubric (will be used for all assessments)..."
+                                    rows="3"
+                                />
+                                <input
+                                    type="file"
+                                    accept=".txt,.md,.pdf,.docx"
+                                    onChange={(e) => e.target.files[0] && handleFileUpload('rubric', e.target.files[0])}
+                                    style={{marginTop: '10px'}}
+                                />
+                            </div>
+
+                            <div className="section">
+                                <div className="section-title">
+                                    Student Answer Files <span className="required">*</span>
+                                </div>
+                                
+                                <div 
+                                    className={`file-upload-zone ${batchFiles.length > 0 ? 'has-files' : ''}`}
+                                    onClick={() => fileInputRef.current?.click()}
+                                    onDrop={handleDrop}
+                                    onDragOver={handleDragOver}
+                                >
+                                    <div className="upload-icon">📤</div>
+                                    <p style={{fontSize: '16px', fontWeight: '500', marginBottom: '8px'}}>
+                                        Drop student answer files here or click to browse
+                                    </p>
+                                    <p style={{fontSize: '14px', color: '#718096'}}>
+                                        Supports: .txt, .md, .pdf, .docx
+                                    </p>
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        multiple
+                                        accept=".txt,.md,.pdf,.docx"
+                                        onChange={(e) => handleBatchFilesSelect(e.target.files)}
+                                        style={{display: 'none'}}
+                                    />
+                                </div>
+
+                                {batchFiles.length > 0 && (
+                                    <div className="file-list">
+                                        {batchFiles.map((file, index) => (
+                                            <div key={index} className="file-item">
+                                                <div className="file-item-info">
+                                                    <span className="file-icon">{getFileIcon(file.name)}</span>
+                                                    <div>
+                                                        <div className="file-name">{file.name}</div>
+                                                        <div className="file-size">{formatFileSize(file.size)}</div>
+                                                    </div>
+                                                </div>
+                                                <div style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
+                                                    <span className={`file-status ${file.status}`}>
+                                                        {file.status === 'pending' && '⏳ Pending'}
+                                                        {file.status === 'processing' && '⚙️ Processing'}
+                                                        {file.status === 'complete' && '✅ Complete'}
+                                                        {file.status === 'error' && '❌ Error'}
+                                                    </span>
+                                                    {file.status === 'pending' && (
+                                                        <button 
+                                                            className="remove-file"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                removeFile(index);
+                                                            }}
+                                                        >
+                                                            Remove
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {loading && (
+                                <div className="progress-container">
+                                    <div className="progress-bar">
+                                        <div className="progress-fill" style={{width: `${processingProgress}%`}}>
+                                            {Math.round(processingProgress)}%
+                                        </div>
+                                    </div>
+                                    <div className="progress-text">
+                                        <strong>{processedCount} of {totalCount} completed</strong>
+                                        <br/>
+                                        Currently processing: {currentlyProcessing}
+                                        <br/>
+                                        <span className="timer-display">⏱ Elapsed: {formatTime(elapsedTime)}</span>
+                                    </div>
+                                    {statusMessage && (
+                                        <div className="status-message" style={{marginTop: '15px'}}>
+                                            {statusMessage}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {batchResults.length > 0 && (
+                                <div className="results-summary">
+                                    <h3>✅ Batch Processing Complete</h3>
+                                    <p style={{marginTop: '10px', color: '#22543d'}}>
+                                        Processed {batchResults.length} files:
+                                        {' '}<strong>{batchResults.filter(r => r.success).length} successful</strong>,
+                                        {' '}{batchResults.filter(r => !r.success).length} errors
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="batch-controls">
+                                {!loading && batchResults.length === 0 && (
+                                    <button 
+                                        onClick={processBatchMode} 
+                                        disabled={batchFiles.length === 0 || !apiKey}
+                                    >
+                                        Process All Files ({batchFiles.length})
+                                    </button>
+                                )}
+                                
+                                {batchResults.length > 0 && (
+                                    <>
+                                        <button onClick={() => downloadBatchResults('text')} className="icon-button">
+                                            📥 Download Text Files (ZIP)
+                                        </button>
+                                        <button onClick={() => downloadBatchResults('json')} className="icon-button">
+                                            📥 Download JSON Files (ZIP)
+                                        </button>
+                                        <button onClick={resetForm} className="secondary-button">
+                                            Start New Batch
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </>
+                    )}
+
+                    {error && <div className="error">{error}</div>}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
