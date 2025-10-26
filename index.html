@@ -60,18 +60,38 @@
         .mode-button {
             flex: 1;
             padding: 12px 20px;
-            border: 2px solid transparent;
+            border: 2px solid #cbd5e0;
             border-radius: 6px;
             background: white;
             cursor: pointer;
-            font-weight: 500;
+            font-weight: 600;
+            font-size: 15px;
+            color: #4a5568;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .mode-button:hover:not(.active) {
+            border-color: #667eea;
+            background: #f7fafc;
+            color: #667eea;
         }
 
         .mode-button.active {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-color: #667eea;
+        }
+
+        .mode-icon {
+            font-size: 18px;
+        }
+
+        .mode-text {
+            font-weight: 600;
         }
 
         .section {
@@ -532,6 +552,46 @@
             align-items: center;
             gap: 6px;
         }
+
+        .output-selection {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .output-selection-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-item label {
+            margin: 0;
+            cursor: pointer;
+            font-size: 14px;
+            color: #555;
+        }
     </style>
 </head>
 <body>
@@ -576,6 +636,12 @@
             const [batchResults, setBatchResults] = useState([]);
             const fileInputRef = useRef(null);
             const jsonFileInputRef = useRef(null);
+
+            // Output field selection
+            const [includeQuestion, setIncludeQuestion] = useState(true);
+            const [includeStudentAnswer, setIncludeStudentAnswer] = useState(true);
+            const [includeModelAnswer, setIncludeModelAnswer] = useState(true);
+            const [includeRubric, setIncludeRubric] = useState(true);
 
             // Load API key from localStorage
             useEffect(() => {
@@ -984,33 +1050,33 @@ Provide a comprehensive assessment following the legal writing assessment skill 
 
             const downloadBatchResults = async (format = 'text') => {
                 const zip = new JSZip();
-                
+
                 if (format === 'text') {
                     // Text format - separate assessment files
                     batchResults.forEach((result, index) => {
                         if (result.success) {
                             const fileName = result.fileName.replace(/\.[^/.]+$/, '') + '_assessment.txt';
-                            const content = `LEGAL WRITING ASSESSMENT
+                            let content = `LEGAL WRITING ASSESSMENT
 ========================
 
 Student File: ${result.fileName}
 Generated: ${new Date().toISOString()}
 
-QUESTION:
-${result.data.question}
-
-STUDENT ANSWER:
-${result.data.studentAnswer}
-
-MODEL ANSWER:
-${result.data.modelAnswer}
-
-RUBRIC:
-${result.data.rubric}
-
-ASSESSMENT:
-${result.assessment}
 `;
+                            if (includeQuestion && result.data.question) {
+                                content += `QUESTION:\n${result.data.question}\n\n`;
+                            }
+                            if (includeStudentAnswer && result.data.studentAnswer) {
+                                content += `STUDENT ANSWER:\n${result.data.studentAnswer}\n\n`;
+                            }
+                            if (includeModelAnswer && result.data.modelAnswer) {
+                                content += `MODEL ANSWER:\n${result.data.modelAnswer}\n\n`;
+                            }
+                            if (includeRubric && result.data.rubric) {
+                                content += `RUBRIC:\n${result.data.rubric}\n\n`;
+                            }
+                            content += `ASSESSMENT:\n${result.assessment}\n`;
+
                             zip.file(fileName, content);
                         } else {
                             const fileName = result.fileName.replace(/\.[^/.]+$/, '') + '_ERROR.txt';
@@ -1025,12 +1091,13 @@ ${result.assessment}
                             const jsonContent = {
                                 studentFile: result.fileName,
                                 generatedAt: new Date().toISOString(),
-                                question: result.data.question,
-                                studentAnswer: result.data.studentAnswer,
-                                modelAnswer: result.data.modelAnswer,
-                                rubric: result.data.rubric,
                                 assessment: result.assessment
                             };
+                            if (includeQuestion) jsonContent.question = result.data.question;
+                            if (includeStudentAnswer) jsonContent.studentAnswer = result.data.studentAnswer;
+                            if (includeModelAnswer) jsonContent.modelAnswer = result.data.modelAnswer;
+                            if (includeRubric) jsonContent.rubric = result.data.rubric;
+
                             zip.file(fileName, JSON.stringify(jsonContent, null, 2));
                         } else {
                             const fileName = result.fileName.replace(/\.[^/.]+$/, '') + '_ERROR.json';
@@ -1201,17 +1268,19 @@ ${result.assessment}
                     <p className="subtitle">Evaluate legal analysis using IRAC/CREAC framework</p>
 
                     <div className="mode-toggle">
-                        <button 
+                        <button
                             className={`mode-button ${mode === 'single' ? 'active' : ''}`}
                             onClick={() => { setMode('single'); resetForm(); }}
                         >
-                            📝 Single Assessment
+                            <span className="mode-icon">📝</span>
+                            <span className="mode-text">Single Assessment</span>
                         </button>
-                        <button 
+                        <button
                             className={`mode-button ${mode === 'batch' ? 'active' : ''}`}
                             onClick={() => { setMode('batch'); resetForm(); }}
                         >
-                            📚 Batch Processing
+                            <span className="mode-icon">📚</span>
+                            <span className="mode-text">Batch Processing</span>
                         </button>
                     </div>
 
@@ -1469,15 +1538,84 @@ ${result.assessment}
                                         </div>
                                     </div>
 
+                                    <div className="output-selection">
+                                        <div className="output-selection-title">Select Output Fields to Include</div>
+                                        <div className="checkbox-group">
+                                            <div className="checkbox-item">
+                                                <input
+                                                    type="checkbox"
+                                                    id="include-question"
+                                                    checked={includeQuestion}
+                                                    onChange={(e) => setIncludeQuestion(e.target.checked)}
+                                                />
+                                                <label htmlFor="include-question">Question</label>
+                                            </div>
+                                            <div className="checkbox-item">
+                                                <input
+                                                    type="checkbox"
+                                                    id="include-student-answer"
+                                                    checked={includeStudentAnswer}
+                                                    onChange={(e) => setIncludeStudentAnswer(e.target.checked)}
+                                                />
+                                                <label htmlFor="include-student-answer">Student Answer</label>
+                                            </div>
+                                            <div className="checkbox-item">
+                                                <input
+                                                    type="checkbox"
+                                                    id="include-model-answer"
+                                                    checked={includeModelAnswer}
+                                                    onChange={(e) => setIncludeModelAnswer(e.target.checked)}
+                                                />
+                                                <label htmlFor="include-model-answer">Model Answer</label>
+                                            </div>
+                                            <div className="checkbox-item">
+                                                <input
+                                                    type="checkbox"
+                                                    id="include-rubric"
+                                                    checked={includeRubric}
+                                                    onChange={(e) => setIncludeRubric(e.target.checked)}
+                                                />
+                                                <label htmlFor="include-rubric">Rubric</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div className="download-buttons">
-                                        <button 
-                                            onClick={() => downloadText(assessment, 'assessment-feedback.txt')}
+                                        <button
+                                            onClick={() => {
+                                                let content = 'LEGAL WRITING ASSESSMENT\n========================\n\nGenerated: ' + new Date().toISOString() + '\n\n';
+
+                                                if (includeQuestion && jsonData.question) {
+                                                    content += 'QUESTION:\n' + jsonData.question + '\n\n';
+                                                }
+                                                if (includeStudentAnswer && jsonData.studentAnswer) {
+                                                    content += 'STUDENT ANSWER:\n' + jsonData.studentAnswer + '\n\n';
+                                                }
+                                                if (includeModelAnswer && jsonData.modelAnswer) {
+                                                    content += 'MODEL ANSWER:\n' + jsonData.modelAnswer + '\n\n';
+                                                }
+                                                if (includeRubric && jsonData.rubric) {
+                                                    content += 'RUBRIC:\n' + jsonData.rubric + '\n\n';
+                                                }
+                                                content += 'ASSESSMENT:\n' + assessment;
+
+                                                downloadText(content, 'assessment-feedback.txt');
+                                            }}
                                             className="secondary-button icon-button"
                                         >
                                             📥 Download Assessment (TXT)
                                         </button>
-                                        <button 
-                                            onClick={() => downloadJSON({...jsonData, assessment}, 'complete-assessment.json')}
+                                        <button
+                                            onClick={() => {
+                                                const filteredData = { assessment };
+                                                if (includeQuestion) filteredData.question = jsonData.question;
+                                                if (includeStudentAnswer) filteredData.studentAnswer = jsonData.studentAnswer;
+                                                if (includeModelAnswer) filteredData.modelAnswer = jsonData.modelAnswer;
+                                                if (includeRubric) filteredData.rubric = jsonData.rubric;
+                                                filteredData.generatedAt = new Date().toISOString();
+
+                                                downloadJSON(filteredData, 'complete-assessment.json');
+                                            }}
                                             className="secondary-button icon-button"
                                         >
                                             📥 Download Complete (JSON)
@@ -1626,14 +1764,58 @@ ${result.assessment}
                             )}
 
                             {batchResults.length > 0 && (
-                                <div className="results-summary">
-                                    <h3>✅ Batch Processing Complete</h3>
-                                    <p style={{marginTop: '10px', color: '#22543d'}}>
-                                        Processed {batchResults.length} files:
-                                        {' '}<strong>{batchResults.filter(r => r.success).length} successful</strong>,
-                                        {' '}{batchResults.filter(r => !r.success).length} errors
-                                    </p>
-                                </div>
+                                <>
+                                    <div className="results-summary">
+                                        <h3>✅ Batch Processing Complete</h3>
+                                        <p style={{marginTop: '10px', color: '#22543d'}}>
+                                            Processed {batchResults.length} files:
+                                            {' '}<strong>{batchResults.filter(r => r.success).length} successful</strong>,
+                                            {' '}{batchResults.filter(r => !r.success).length} errors
+                                        </p>
+                                    </div>
+
+                                    <div className="output-selection">
+                                        <div className="output-selection-title">Select Output Fields to Include</div>
+                                        <div className="checkbox-group">
+                                            <div className="checkbox-item">
+                                                <input
+                                                    type="checkbox"
+                                                    id="batch-include-question"
+                                                    checked={includeQuestion}
+                                                    onChange={(e) => setIncludeQuestion(e.target.checked)}
+                                                />
+                                                <label htmlFor="batch-include-question">Question</label>
+                                            </div>
+                                            <div className="checkbox-item">
+                                                <input
+                                                    type="checkbox"
+                                                    id="batch-include-student-answer"
+                                                    checked={includeStudentAnswer}
+                                                    onChange={(e) => setIncludeStudentAnswer(e.target.checked)}
+                                                />
+                                                <label htmlFor="batch-include-student-answer">Student Answer</label>
+                                            </div>
+                                            <div className="checkbox-item">
+                                                <input
+                                                    type="checkbox"
+                                                    id="batch-include-model-answer"
+                                                    checked={includeModelAnswer}
+                                                    onChange={(e) => setIncludeModelAnswer(e.target.checked)}
+                                                />
+                                                <label htmlFor="batch-include-model-answer">Model Answer</label>
+                                            </div>
+                                            <div className="checkbox-item">
+                                                <input
+                                                    type="checkbox"
+                                                    id="batch-include-rubric"
+                                                    checked={includeRubric}
+                                                    onChange={(e) => setIncludeRubric(e.target.checked)}
+                                                />
+                                                <label htmlFor="batch-include-rubric">Rubric</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
                             )}
 
                             <div className="batch-controls">
