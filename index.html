@@ -2398,6 +2398,57 @@ Generated: ${new Date().toISOString()}
                                 </div>
                             )}
 
+                            <div className="section">
+                                <div className="section-title">Output Controls</div>
+                                <p style={{fontSize: '14px', color: '#666', marginBottom: '15px'}}>
+                                    Choose what content to include in downloaded files:
+                                </p>
+                                <div className="output-controls-container">
+                                    <div className="output-controls-grid">
+                                        <label className="output-control-label">
+                                            <input
+                                                type="checkbox"
+                                                checked={outputControls.includeQuestion}
+                                                onChange={(e) => handleOutputControlChange('includeQuestion', e.target.checked)}
+                                            />
+                                            <span>Question</span>
+                                        </label>
+                                        <label className="output-control-label">
+                                            <input
+                                                type="checkbox"
+                                                checked={outputControls.includeStudentAnswer}
+                                                onChange={(e) => handleOutputControlChange('includeStudentAnswer', e.target.checked)}
+                                            />
+                                            <span>Student Answer</span>
+                                        </label>
+                                        <label className="output-control-label">
+                                            <input
+                                                type="checkbox"
+                                                checked={outputControls.includeModelAnswer}
+                                                onChange={(e) => handleOutputControlChange('includeModelAnswer', e.target.checked)}
+                                            />
+                                            <span>Model Answer</span>
+                                        </label>
+                                        <label className="output-control-label">
+                                            <input
+                                                type="checkbox"
+                                                checked={outputControls.includeRubric}
+                                                onChange={(e) => handleOutputControlChange('includeRubric', e.target.checked)}
+                                            />
+                                            <span>Rubric</span>
+                                        </label>
+                                        <label className="output-control-label">
+                                            <input
+                                                type="checkbox"
+                                                checked={outputControls.includeAssessment}
+                                                onChange={(e) => handleOutputControlChange('includeAssessment', e.target.checked)}
+                                            />
+                                            <span>Assessment</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="batch-controls">
                                 {!loading && batchResults.length === 0 && (
                                     <button
