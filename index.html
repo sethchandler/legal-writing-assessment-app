@@ -1768,13 +1768,39 @@ Generated: ${new Date().toISOString()}
                         </div>
 
                         <label>API Key <span className="required">*</span></label>
-                        <input
-                            type="password"
-                            value={apiKey}
-                            onChange={(e) => handleApiKeyChange(e.target.value)}
-                            placeholder={`Enter your ${provider === 'anthropic' ? 'Anthropic' : provider === 'openai' ? 'OpenAI' : provider === 'google' ? 'Google AI' : 'OpenRouter'} API key`}
-                        />
-                        
+                        <div style={{display: 'flex', gap: '10px', marginBottom: '15px'}}>
+                            <input
+                                type="password"
+                                value={apiKey}
+                                onChange={(e) => handleApiKeyChange(e.target.value)}
+                                placeholder={`Enter your ${provider === 'anthropic' ? 'Anthropic' : provider === 'openai' ? 'OpenAI' : provider === 'google' ? 'Google AI' : 'OpenRouter'} API key`}
+                                style={{flex: 1}}
+                            />
+                            <button
+                                onClick={() => {
+                                    setApiKey('');
+                                    localStorage.removeItem(`apiKey_${provider}`);
+                                    setError('');
+                                    alert(`API key for ${provider} cleared from browser storage`);
+                                }}
+                                style={{
+                                    padding: '8px 16px',
+                                    background: '#ef5350',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    whiteSpace: 'nowrap',
+                                    height: '40px'
+                                }}
+                                title="Clear saved API key from browser storage"
+                            >
+                                🗑️ Clear
+                            </button>
+                        </div>
+
                         <label style={{marginTop: '15px'}}>Model</label>
                         <select value={model} onChange={(e) => setModel(e.target.value)}>
                             {provider === 'anthropic' ? (
