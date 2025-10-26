@@ -884,9 +884,11 @@ Format the rubric with clear scoring criteria for each component.`;
 
             const performSingleAssessment = async (data) => {
                 setStatusMessage('🤖 Analyzing legal writing...');
+                console.log('performSingleAssessment called with data:', { hasQuestion: !!data.question, hasStudentAnswer: !!data.studentAnswer, hasModelAnswer: !!data.modelAnswer, hasRubric: !!data.rubric });
 
                 // Check if caching is supported
                 const cachingInfo = supportsCaching(provider, model, cachingEnabled);
+                console.log('Caching info:', cachingInfo);
 
                 let result;
                 if (cachingInfo.supported) {
@@ -1254,6 +1256,7 @@ Generated: ${new Date().toISOString()}
             };
 
             const callLLM = async (prompt, cachingConfig = { enabled: false, method: null, cacheableContent: null, nonCacheableContent: null }) => {
+                console.log('callLLM called:', { provider, model, promptLength: prompt.length, hasApiKey: !!apiKey, cachingConfig });
                 try {
                     if (provider === 'anthropic') {
                         let messages;
@@ -1434,11 +1437,13 @@ Generated: ${new Date().toISOString()}
                     return data.choices[0].message.content;
                     }
                 } catch (err) {
-                    console.error('callLLM error:', {
+                    console.error('callLLM ERROR CAUGHT:', {
                         provider: provider,
                         model: model,
-                        error: err.message,
-                        stack: err.stack
+                        errorMessage: err.message,
+                        errorName: err.name,
+                        stack: err.stack,
+                        fullError: err
                     });
                     throw err;
                 }
