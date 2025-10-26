@@ -1,6 +1,58 @@
-# Changelog - Version 2.0
+# Changelog
 
-## 🎉 Major Enhancements Based on User Feedback
+## 🆕 Version 3.0 - Error Handling & Advanced Features (October 26, 2024)
+
+### ✅ 1. User-Friendly Error Messages
+**Problem**: Errors only visible in browser DevTools; non-technical users (professors, students) couldn't understand failures
+**Solution**:
+- **Error Mapping Dictionary**: 40+ common error patterns mapped to plain English explanations
+- **LLM Error Translation**: Unknown errors sent to LLM for intelligent explanation
+- **Hybrid Approach**: Fast dictionary lookup first, intelligent LLM fallback second
+- **In-UI Display**: Error messages shown directly in batch results without DevTools access
+- **Expandable Details**: Technical details hidden by default, available for debugging
+- **Copy Button**: Easy sharing of error information for support
+
+### ✅ 2. Prompt Caching to Reduce API Costs
+**Problem**: Same question, rubric, model answer sent repeatedly to LLM, wasting money
+**Solution**:
+- **Anthropic Caching**: 90% cost reduction on cached prompts (uses cache_control headers)
+- **OpenAI Caching**: 50% cost reduction on cached prompts (uses cache_control headers)
+- **Google Gemini 2.5**: Implicit caching (automatic, no code changes needed)
+- **OpenRouter Support**: Automatic detection and caching based on underlying model
+- **User Control**: Toggle in UI to enable/disable caching
+- **Status Indicator**: Shows caching status for each model
+
+### ✅ 3. Advanced Diagnostics for Error Translation
+**Problem**: Some error messages still unclear even when translated
+**Solution**:
+- **Optional Custom Model**: Advanced section lets users select different model for error explanation
+- **Hidden by Default**: Only visible in advanced settings (doesn't confuse typical users)
+- **Provider-Aware**: Offers appropriate models based on selected provider
+- **Help Text**: Clear explanation of what this feature does
+
+### ✅ 4. Output Controls for Batch Processing
+**Problem**: Users had to download everything or nothing
+**Solution**:
+- **Granular Control**: Checkboxes for each component (Question, Student Answer, Model Answer, Rubric, Assessment)
+- **Persistent Settings**: Choices remembered across batches
+- **Default All**: Starts with all selected for backward compatibility
+- **UI Position**: Placed above "Generate Assessment" button for easy access
+
+### ✅ 5. Improved Mode Switcher
+**Problem**: Icon-only toggle was confusing (📝 vs 📚)
+**Solution**:
+- **Text Labels Always Visible**: "Single Assessment" and "Batch Processing" text always shown
+- **Better Visual Feedback**: Active state clearly highlighted
+- **Improved Accessibility**: Text labels help screen readers
+
+### Model Cleanup
+- Removed outdated OpenAI models: gpt-5-chat, gpt-5-thinking, gpt-5-instant, gpt-4.1
+- Fixed OpenRouter model naming: anthropic/claude-sonnet-4.5, anthropic/claude-haiku-4.5
+- Verified all models against current provider documentation
+
+## 🎉 Version 2.0 - Major Enhancements Based on User Feedback (October 24, 2024)
+
+## Previous Features
 
 ### ✅ 1. Real-Time Status Feedback
 **Problem**: Users couldn't see what was happening during processing

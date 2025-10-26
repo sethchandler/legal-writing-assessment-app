@@ -41,10 +41,10 @@ This tool helps law faculty and students evaluate legal writing using the IRAC (
    - Key is saved in browser for future use
 
 3. **Select Model**
-   - **Anthropic**: Claude Sonnet 4.5 (recommended), Claude Haiku 4.5
-   - **OpenAI**: GPT-5, GPT-5 Instant, GPT-5 Thinking, GPT-5 Chat, GPT-4.1, GPT-5 Mini, GPT-5 Nano
-   - **Google**: Gemini 2.5 Pro, Gemini 2.5 Flash, Gemini 2.5 Flash Lite
-   - **OpenRouter**: All above models + GLM-4.5 (Free)
+   - **Anthropic**: Claude Sonnet 4.5 (recommended), Claude Haiku 4.5 (cost-efficient)
+   - **OpenAI**: GPT-5, GPT-5 Mini, GPT-5 Nano
+   - **Google**: Gemini 2.5 Pro, Gemini 2.5 Flash (with implicit caching), Gemini 2.5 Flash Lite
+   - **OpenRouter**: All above models + GLM-4.5 (Free tier available)
 
 ### Step 2: Input Assessment Data
 
@@ -139,6 +139,64 @@ The assessment includes:
 - Socratic prompts for student reflection
 - No direct answers provided
 - Guides students to discover solutions
+
+## Advanced Features (Version 3.0)
+
+### Prompt Caching (Save API Costs)
+
+**What is it?** When processing multiple assessments with the same question, rubric, and model answer, caching prevents resending that static content.
+
+**Cost Savings:**
+- Anthropic: Up to 90% reduction on cached prompts
+- OpenAI: Up to 50% reduction on cached prompts
+- Google Gemini 2.5: Implicit caching (automatic)
+
+**How to use:**
+1. In "AI Configuration", look for "Enable Prompt Caching"
+2. Checkbox appears only for models that support it
+3. Toggle on/off as needed
+4. Status indicator shows caching status
+
+**Best for:** Batch processing many students with the same exam question
+
+### Batch Processing with Error Reporting
+
+**What it does:**
+- Upload multiple student answer files (PDF, DOCX, TXT)
+- Process all at once with progress tracking
+- See real-time: "3 of 25 completed" + current file + elapsed time
+
+**Output Controls:**
+- Checkboxes let you choose what to include in downloads:
+  - Question, Student Answer, Model Answer, Rubric, Assessment
+- Download as ZIP of text files OR JSON files
+- Each file preserves student's original filename
+
+**Error Handling:**
+- Friendly error messages shown in UI (no DevTools needed)
+- "Show technical details" button for debugging
+- "Copy" button to share error information
+
+### Output Controls
+
+Located above "Generate Assessment Data" button:
+- ☐ Question
+- ☐ Student Answer
+- ☐ Model Answer
+- ☐ Rubric
+- ☐ Assessment
+
+Selections apply to all downloads and are remembered for future batches.
+
+### Advanced Diagnostics (Optional)
+
+If error messages are still unclear:
+1. Click "Advanced Diagnostics" (collapsed by default)
+2. Check "Use custom model for error diagnosis"
+3. Select which model to use for explaining errors
+4. That model will be called when dictionary lookups fail
+
+**Note**: This is optional and advanced. Most users won't need it.
 
 ## Common Use Cases
 

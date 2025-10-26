@@ -20,6 +20,14 @@ A powerful, privacy-focused web application for evaluating legal writing using I
 - ✅ Counterargument analysis
 - ✅ Socratic questioning for improvement
 
+### Advanced Features
+- 🚀 **Prompt Caching**: Reduce API costs by 50-90% (Anthropic, OpenAI, Google Gemini)
+- 📦 **Batch Processing**: Assess multiple student answers in one operation with progress tracking
+- 📋 **Output Controls**: Select what to include in downloads (Question, Student Answer, Model Answer, Rubric, Assessment)
+- 🎨 **Improved Mode Switcher**: Clear text labels always visible (not just icons)
+- ⚠️ **User-Friendly Error Messages**: See errors in the UI without opening DevTools
+- ⚙️ **Advanced Diagnostics**: Optional custom model for error explanation
+
 ### Privacy & Security
 - 🔒 No server-side processing
 - 🔒 API keys stored locally in browser
@@ -167,26 +175,22 @@ Typical costs per assessment:
 ### Supported Models
 
 **Anthropic:**
-- Claude Sonnet 4.5 (recommended)
-- Claude Haiku 4.5
+- Claude Sonnet 4.5 (recommended for best results)
+- Claude Haiku 4.5 (recommended for cost efficiency)
 
 **OpenAI:**
 - GPT-5
-- GPT-5 Instant
-- GPT-5 Thinking
-- GPT-5 Chat
-- GPT-4.1
 - GPT-5 Mini
 - GPT-5 Nano
 
 **Google:**
 - Gemini 2.5 Pro
-- Gemini 2.5 Flash
+- Gemini 2.5 Flash (recommended, implicit caching)
 - Gemini 2.5 Flash Lite
 
 **OpenRouter:**
-- All of the above models plus:
-- GLM-4.5 (Free tier available)
+- Access to all above models plus:
+- GLM-4.5 (Free tier available via OpenRouter)
 
 ### Customization
 
@@ -250,12 +254,15 @@ MIT License - See LICENSE file for details
 
 ## 🗺️ Roadmap
 
+- [x] Batch processing interface (✅ Complete)
+- [x] Prompt caching to reduce API costs (✅ Complete)
+- [x] User-friendly error messages (✅ Complete)
 - [ ] PDF export of assessments
-- [ ] Batch processing interface
 - [ ] Historical comparison charts
 - [ ] Additional frameworks (FIRAC, etc.)
 - [ ] Mobile app version
 - [ ] Offline mode with local models
+- [ ] Email notifications for batch completion
 
 ## ⭐ Star History
 
