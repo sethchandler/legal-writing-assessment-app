@@ -640,6 +640,213 @@
             // Caching control state
             const [cachingEnabled, setCachingEnabled] = useState(true);
 
+            // Error handling states
+            const [errorDiagnosisModel, setErrorDiagnosisModel] = useState(null);
+            const [useCustomErrorModel, setUseCustomErrorModel] = useState(false);
+
+            // Error mapping dictionary for common errors
+            const ERROR_MESSAGE_MAP = {
+                // Authentication errors
+                'invalid api key': 'Invalid API key for the selected provider. Please check your API key and try again.',
+                'unauthorized': 'Unauthorized access. Please verify your API key is correct and has the necessary permissions.',
+                'invalid_api_key': 'Invalid API key. Please check your API key and try again.',
+                '401': 'Authentication failed. Please verify your API key is correct.',
+                'unauthorized_client': 'Your API key is not authorized. Please check your credentials.',
+
+                // Rate limiting
+                'rate_limit': 'Rate limit exceeded. Please wait a moment before trying again.',
+                'too_many_requests': 'Too many requests. Please wait before processing more files.',
+                '429': 'Rate limit exceeded. Please wait a few moments and try again.',
+                'quota_exceeded': 'API quota exceeded. Please check your plan or wait for quota to reset.',
+
+                // Model errors
+                'model not found': 'The selected model is not available. Please choose a different model.',
+                'invalid_model': 'The selected model is not available on this provider.',
+                'model_not_found': 'Model not found. Please select a different model.',
+                'does not exist': 'The selected model does not exist on this provider.',
+
+                // Request errors
+                'invalid request': 'Invalid request format. Please check your input and try again.',
+                'bad request': 'Bad request. Please check your input and try again.',
+                '400': 'Invalid request. Please check your input and try again.',
+                'invalid_parameter': 'Invalid parameter in request. Please check your settings.',
+
+                // Network errors
+                'network error': 'Network connection error. Please check your internet connection and try again.',
+                'enotfound': 'Could not reach the API server. Please check your internet connection.',
+                'timeout': 'Request timed out. Please try again.',
+                'econnrefused': 'Connection refused. The API server may be temporarily unavailable.',
+                'fetch failed': 'Failed to connect to the API. Please check your internet connection.',
+
+                // File parsing errors
+                'failed to parse file': 'Could not read the file. The file may be corrupted or in an unsupported format.',
+                'invalid file': 'Invalid file format. Please ensure the file is in a supported format (PDF, DOCX, TXT, etc).',
+                'unsupported file': 'Unsupported file format. Please use PDF, Word, or text files.',
+                'parse error': 'Failed to parse file content. The file may be corrupted.',
+
+                // Missing data errors
+                'missing question': 'Question is required. Please provide a legal question.',
+                'missing student answer': 'Student answer is required. Please provide the student\'s response.',
+                'missing model answer': 'Model answer is required. Please provide the reference answer.',
+                'missing rubric': 'Rubric is required. Please provide evaluation criteria.',
+                'missing required': 'Missing required field. Please fill in all required fields.',
+
+                // Context/token errors
+                'context length': 'Content too long. Please reduce the length of your input text.',
+                'maximum tokens': 'Input exceeds maximum length. Please shorten your text.',
+                'context_length_exceeded': 'Input too long for this model. Please use shorter content.',
+                'token limit': 'Token limit exceeded. Please reduce the amount of text.',
+
+                // Server errors
+                'server error': 'Server error occurred. Please try again later.',
+                '500': 'Internal server error. Please try again later.',
+                '503': 'Service temporarily unavailable. Please try again later.',
+                'service unavailable': 'The API service is temporarily unavailable. Please try again later.'
+            };
+
+            // Translate error to user-friendly message
+            const translateError = async (error, shouldUseLLM = true) => {
+                const errorStr = (error?.message || String(error)).toLowerCase();
+
+                console.log('Raw error:', errorStr);
+
+                // Check against error mapping dictionary
+                for (const [key, message] of Object.entries(ERROR_MESSAGE_MAP)) {
+                    if (errorStr.includes(key)) {
+                        console.log('Found error mapping for:', key);
+                        return {
+                            friendly: message,
+                            raw: error?.message || String(error),
+                            translated: true,
+                            method: 'dictionary'
+                        };
+                    }
+                }
+
+                // If not in dictionary and LLM is available, try LLM translation
+                if (shouldUseLLM && apiKey) {
+                    try {
+                        console.log('Attempting LLM error translation');
+                        const translated = await translateErrorWithLLM(error);
+                        return translated;
+                    } catch (llmError) {
+                        console.log('LLM translation failed, using raw error:', llmError);
+                    }
+                }
+
+                // Fallback to raw error
+                return {
+                    friendly: 'An error occurred during processing. See details below.',
+                    raw: error?.message || String(error),
+                    translated: false,
+                    method: 'fallback'
+                };
+            };
+
+            // Use LLM to translate error messages
+            const translateErrorWithLLM = async (error) => {
+                const errorMessage = error?.message || String(error);
+                const translationPrompt = `You are a helpful assistant explaining technical errors to non-technical users (law professors and students).
+Translate this technical error message into plain, clear English that explains what went wrong and suggests a solution.
+Be concise (1-2 sentences max).
+
+Technical error: "${errorMessage}"
+
+Plain English explanation:`;
+
+                try {
+                    // Determine which model to use
+                    const selectedModel = useCustomErrorModel && errorDiagnosisModel ? errorDiagnosisModel : model;
+                    const selectedProvider = useCustomErrorModel && errorDiagnosisModel ? provider : provider;
+
+                    console.log('Translating error with model:', selectedModel, 'provider:', selectedProvider);
+
+                    let response;
+
+                    if (selectedProvider === 'anthropic') {
+                        const res = await fetch('https://api.anthropic.com/v1/messages/create', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'x-api-key': apiKey,
+                                'anthropic-version': '2023-06-01'
+                            },
+                            body: JSON.stringify({
+                                model: selectedModel,
+                                max_tokens: 200,
+                                messages: [
+                                    { role: 'user', content: translationPrompt }
+                                ]
+                            })
+                        });
+                        const data = await res.json();
+                        if (data.error) throw new Error(data.error.message);
+                        response = data.content[0].text;
+                    } else if (selectedProvider === 'openai') {
+                        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${apiKey}`
+                            },
+                            body: JSON.stringify({
+                                model: selectedModel,
+                                messages: [
+                                    { role: 'system', content: 'You are a helpful assistant.' },
+                                    { role: 'user', content: translationPrompt }
+                                ],
+                                max_tokens: 200
+                            })
+                        });
+                        const data = await res.json();
+                        if (data.error) throw new Error(data.error.message);
+                        response = data.choices[0].message.content;
+                    } else if (selectedProvider === 'google') {
+                        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                contents: [{ parts: [{ text: translationPrompt }] }],
+                                generationConfig: { maxOutputTokens: 200 }
+                            })
+                        });
+                        const data = await res.json();
+                        if (data.error) throw new Error(data.error.message);
+                        response = data.candidates[0].content.parts[0].text;
+                    } else if (selectedProvider === 'openrouter') {
+                        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${apiKey}`
+                            },
+                            body: JSON.stringify({
+                                model: selectedModel,
+                                messages: [
+                                    { role: 'user', content: translationPrompt }
+                                ],
+                                max_tokens: 200
+                            })
+                        });
+                        const data = await res.json();
+                        if (data.error) throw new Error(data.error.message);
+                        response = data.choices[0].message.content;
+                    }
+
+                    return {
+                        friendly: response,
+                        raw: errorMessage,
+                        translated: true,
+                        method: 'llm'
+                    };
+                } catch (llmErr) {
+                    console.log('LLM translation failed:', llmErr);
+                    throw llmErr;
+                }
+            };
+
             // Load API key from localStorage
             useEffect(() => {
                 const savedKey = localStorage.getItem(`apiKey_${provider}`);
@@ -1138,17 +1345,21 @@ Provide a comprehensive assessment following the legal writing assessment skill 
                             ));
 
                         } catch (err) {
-                            const errorMsg = err.message || 'Unknown error occurred';
                             console.error(`Error processing ${fileInfo.name}:`, err);
+
+                            // Translate error to user-friendly message
+                            const errorTranslation = await translateError(err);
+
                             results.push({
                                 fileName: fileInfo.name,
-                                error: errorMsg,
+                                error: errorTranslation.friendly,
+                                rawError: errorTranslation.raw,
                                 success: false
                             });
 
                             // Update file status to error
                             setBatchFiles(prev => prev.map((f, idx) =>
-                                idx === i ? { ...f, status: 'error', error: errorMsg } : f
+                                idx === i ? { ...f, status: 'error', error: errorTranslation.friendly, rawError: errorTranslation.raw } : f
                             ));
                         }
 
@@ -1630,6 +1841,75 @@ Generated: ${new Date().toISOString()}
                                 ⊘ Prompt caching not available for this model
                             </div>
                         )}
+
+                        {/* Advanced Diagnostics Section */}
+                        <div style={{marginTop: '25px', paddingTop: '20px', borderTop: '1px solid #e2e8f0'}}>
+                            <div style={{display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', marginBottom: '15px'}} onClick={() => setUseCustomErrorModel(!useCustomErrorModel)}>
+                                <span style={{fontSize: '16px', color: '#667eea', fontWeight: '500'}}>⚙️ Advanced Diagnostics</span>
+                                <span style={{fontSize: '12px', color: '#a0aec0', fontStyle: 'italic'}}>(optional)</span>
+                            </div>
+
+                            {useCustomErrorModel && (
+                                <div style={{padding: '15px', background: '#f7fafc', border: '1px solid #cbd5e0', borderRadius: '6px', marginBottom: '15px'}}>
+                                    <p style={{fontSize: '13px', color: '#4a5568', marginBottom: '10px'}}>
+                                        If error messages are unclear, you can use a different model to help explain them.
+                                    </p>
+                                    <label style={{display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: '500', color: '#2d3748'}}>
+                                        Error Diagnosis Model
+                                    </label>
+                                    <select
+                                        value={errorDiagnosisModel || ''}
+                                        onChange={(e) => setErrorDiagnosisModel(e.target.value)}
+                                        style={{width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e0', fontSize: '13px'}}
+                                    >
+                                        <option value="">Use selected assessment model (default)</option>
+                                        {provider === 'anthropic' ? (
+                                            <>
+                                                <option value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5</option>
+                                                <option value="claude-haiku-4-5">Claude Haiku 4.5</option>
+                                            </>
+                                        ) : provider === 'openai' ? (
+                                            <>
+                                                <option value="gpt-5">GPT-5</option>
+                                                <option value="gpt-5-mini">GPT-5 Mini</option>
+                                                <option value="gpt-5-nano">GPT-5 Nano</option>
+                                            </>
+                                        ) : provider === 'google' ? (
+                                            <>
+                                                <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                                                <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                                                <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <option value="anthropic/claude-sonnet-4.5">Claude Sonnet 4.5</option>
+                                                <option value="anthropic/claude-haiku-4.5">Claude Haiku 4.5</option>
+                                                <option value="openai/gpt-5">GPT-5</option>
+                                                <option value="openai/gpt-5-mini">GPT-5 Mini</option>
+                                                <option value="openai/gpt-5-nano">GPT-5 Nano</option>
+                                                <option value="google/gemini-2.5-pro">Gemini 2.5 Pro</option>
+                                                <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
+                                                <option value="google/gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+                                                <option value="z-ai/glm-4.5:free">GLM-4.5 (Free)</option>
+                                            </>
+                                        )}
+                                    </select>
+                                    <p style={{fontSize: '12px', color: '#718096', marginTop: '8px'}}>
+                                        This model will be used to explain error messages if they don't match common patterns.
+                                    </p>
+                                </div>
+                            )}
+
+                            <label style={{display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer'}}>
+                                <input
+                                    type="checkbox"
+                                    checked={useCustomErrorModel}
+                                    onChange={(e) => setUseCustomErrorModel(e.target.checked)}
+                                    style={{width: '18px', height: '18px', cursor: 'pointer'}}
+                                />
+                                <span style={{fontSize: '13px', color: '#4a5568'}}>Use custom model for error diagnosis</span>
+                            </label>
+                        </div>
                     </div>
 
                     {mode === 'single' ? (
@@ -2026,6 +2306,50 @@ Generated: ${new Date().toISOString()}
                                             </p>
                                         </>
                                     )}
+                                </div>
+                            )}
+
+                            {/* Error Details Table */}
+                            {batchResults.filter(r => !r.success).length > 0 && (
+                                <div style={{marginTop: '25px', padding: '15px', background: '#fff5f5', border: '1px solid #feb2b2', borderRadius: '8px'}}>
+                                    <h4 style={{color: '#c53030', marginBottom: '15px'}}>Error Details</h4>
+                                    {batchResults.map((result, idx) => (
+                                        !result.success && (
+                                            <div key={idx} style={{marginBottom: '15px', padding: '12px', background: 'white', border: '1px solid #fed7d7', borderRadius: '6px'}}>
+                                                <div style={{display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px'}}>
+                                                    <div style={{flex: 1}}>
+                                                        <div style={{fontSize: '14px', fontWeight: '500', color: '#c53030', marginBottom: '8px'}}>
+                                                            ❌ {result.fileName}
+                                                        </div>
+                                                        <div style={{fontSize: '14px', color: '#2d3748', lineHeight: '1.5', marginBottom: '8px'}}>
+                                                            {result.error}
+                                                        </div>
+                                                        {result.rawError && (
+                                                            <details style={{fontSize: '12px', color: '#718096', marginTop: '10px'}}>
+                                                                <summary style={{cursor: 'pointer', color: '#4299e1', fontWeight: '500', marginBottom: '8px'}}>
+                                                                    Show technical details
+                                                                </summary>
+                                                                <div style={{padding: '8px 12px', background: '#edf2f7', borderRadius: '4px', borderLeft: '3px solid #4299e1', marginTop: '8px', fontFamily: 'monospace', fontSize: '11px', wordBreak: 'break-word'}}>
+                                                                    {result.rawError}
+                                                                </div>
+                                                            </details>
+                                                        )}
+                                                    </div>
+                                                    <button
+                                                        onClick={() => {
+                                                            const text = `Error in ${result.fileName}:\n\n${result.error}\n\nTechnical details:\n${result.rawError || 'N/A'}`;
+                                                            navigator.clipboard.writeText(text).then(() => {
+                                                                alert('Error details copied to clipboard');
+                                                            });
+                                                        }}
+                                                        style={{padding: '6px 10px', fontSize: '12px', background: '#4299e1', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', whiteSpace: 'nowrap', marginTop: '5px'}}
+                                                    >
+                                                        📋 Copy
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )
+                                    ))}
                                 </div>
                             )}
 
