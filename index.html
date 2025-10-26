@@ -1660,7 +1660,30 @@ Generated: ${new Date().toISOString()}
                 }
             };
 
+            const resetModeState = () => {
+                // Called when switching modes - clears mode-specific state but PRESERVES shared context
+                setStep(1);
+                setInputMode('form');
+                setFormData(prev => ({
+                    question: prev.question,  // PRESERVE question
+                    studentAnswer: '',         // Clear student answer (mode-specific)
+                    modelAnswer: prev.modelAnswer,  // PRESERVE model answer
+                    rubric: prev.rubric        // PRESERVE rubric
+                }));
+                setJsonInput('');
+                setBatchFiles([]);
+                setJsonData(null);
+                setAssessment(null);
+                setBatchResults([]);
+                setError('');
+                setStatusMessage('');
+                setProcessingProgress(0);
+                setProcessedCount(0);
+                setTotalCount(0);
+            };
+
             const resetForm = () => {
+                // Full reset - clears everything
                 setStep(1);
                 setInputMode('form');
                 setFormData({
@@ -1720,16 +1743,16 @@ Generated: ${new Date().toISOString()}
                     <p className="subtitle">Evaluate legal analysis using IRAC/CREAC framework</p>
 
                     <div className="mode-toggle">
-                        <button 
+                        <button
                             className={`mode-button ${mode === 'single' ? 'active' : ''}`}
-                            onClick={() => { setMode('single'); resetForm(); }}
+                            onClick={() => { setMode('single'); resetModeState(); }}
                         >
                             <span style={{fontSize: '18px', marginRight: '8px'}}>📝</span>
                             <span>Single Assessment</span>
                         </button>
-                        <button 
+                        <button
                             className={`mode-button ${mode === 'batch' ? 'active' : ''}`}
-                            onClick={() => { setMode('batch'); resetForm(); }}
+                            onClick={() => { setMode('batch'); resetModeState(); }}
                         >
                             <span style={{fontSize: '18px', marginRight: '8px'}}>📚</span>
                             <span>Batch Processing</span>
@@ -1768,38 +1791,34 @@ Generated: ${new Date().toISOString()}
                         </div>
 
                         <label>API Key <span className="required">*</span></label>
-                        <div style={{display: 'flex', gap: '10px', marginBottom: '15px'}}>
-                            <input
-                                type="password"
-                                value={apiKey}
-                                onChange={(e) => handleApiKeyChange(e.target.value)}
-                                placeholder={`Enter your ${provider === 'anthropic' ? 'Anthropic' : provider === 'openai' ? 'OpenAI' : provider === 'google' ? 'Google AI' : 'OpenRouter'} API key`}
-                                style={{flex: 1}}
-                            />
-                            <button
-                                onClick={() => {
-                                    setApiKey('');
-                                    localStorage.removeItem(`apiKey_${provider}`);
-                                    setError('');
-                                    alert(`API key for ${provider} cleared from browser storage`);
-                                }}
-                                style={{
-                                    padding: '8px 16px',
-                                    background: '#ef5350',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '6px',
-                                    cursor: 'pointer',
-                                    fontSize: '13px',
-                                    fontWeight: '500',
-                                    whiteSpace: 'nowrap',
-                                    height: '40px'
-                                }}
-                                title="Clear saved API key from browser storage"
-                            >
-                                🗑️ Clear
-                            </button>
-                        </div>
+                        <input
+                            type="password"
+                            value={apiKey}
+                            onChange={(e) => handleApiKeyChange(e.target.value)}
+                            placeholder={`Enter your ${provider === 'anthropic' ? 'Anthropic' : provider === 'openai' ? 'OpenAI' : provider === 'google' ? 'Google AI' : 'OpenRouter'} API key`}
+                        />
+                        <button
+                            onClick={() => {
+                                setApiKey('');
+                                localStorage.removeItem(`apiKey_${provider}`);
+                                setError('');
+                                alert(`API key for ${provider} cleared from browser storage`);
+                            }}
+                            style={{
+                                marginTop: '8px',
+                                padding: '8px 12px',
+                                background: '#ef5350',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: '500'
+                            }}
+                            title="Clear saved API key from browser storage"
+                        >
+                            🗑️ Clear Saved Key
+                        </button>
 
                         <label style={{marginTop: '15px'}}>Model</label>
                         <select value={model} onChange={(e) => setModel(e.target.value)}>
