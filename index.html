@@ -2013,35 +2013,62 @@ Generated: ${new Date().toISOString()}
 
                             {batchResults.length > 0 && (
                                 <div className="results-summary">
-                                    <h3>✅ Batch Processing Complete</h3>
-                                    <p style={{marginTop: '10px', color: '#22543d'}}>
-                                        Processed {batchResults.length} files:
-                                        {' '}<strong>{batchResults.filter(r => r.success).length} successful</strong>,
-                                        {' '}{batchResults.filter(r => !r.success).length} errors
-                                    </p>
+                                    {batchResults.filter(r => !r.success).length === 0 ? (
+                                        <>
+                                            <h3>✅ Batch Processing Complete</h3>
+                                            <p style={{marginTop: '10px', color: '#22543d'}}>
+                                                Successfully processed {batchResults.length} files
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <h3 style={{color: '#c53030'}}>⚠️ Batch Processing Failed</h3>
+                                            <p style={{marginTop: '10px', color: '#742a2a'}}>
+                                                Processed {batchResults.length} files:
+                                                {' '}<strong>{batchResults.filter(r => r.success).length} successful</strong>,
+                                                {' '}<strong style={{color: '#c53030'}}>{batchResults.filter(r => !r.success).length} errors</strong>
+                                            </p>
+                                        </>
+                                    )}
                                 </div>
                             )}
 
                             <div className="batch-controls">
                                 {!loading && batchResults.length === 0 && (
-                                    <button 
-                                        onClick={processBatchMode} 
+                                    <button
+                                        onClick={processBatchMode}
                                         disabled={batchFiles.length === 0 || !apiKey}
                                     >
                                         Process All Files ({batchFiles.length})
                                     </button>
                                 )}
-                                
+
                                 {batchResults.length > 0 && (
                                     <>
-                                        <button onClick={() => downloadBatchResults('text')} className="icon-button">
-                                            📥 Download Text Files (ZIP)
-                                        </button>
-                                        <button onClick={() => downloadBatchResults('json')} className="icon-button">
-                                            📥 Download JSON Files (ZIP)
-                                        </button>
+                                        {batchResults.filter(r => !r.success).length > 0 && (
+                                            <button
+                                                onClick={() => {
+                                                    setBatchResults([]);
+                                                    setProcessingProgress(0);
+                                                    setProcessedCount(0);
+                                                }}
+                                                style={{background: '#ed8936', marginRight: '10px'}}
+                                            >
+                                                🔄 Retry Processing
+                                            </button>
+                                        )}
+                                        {batchResults.filter(r => r.success).length > 0 && (
+                                            <>
+                                                <button onClick={() => downloadBatchResults('text')} className="icon-button">
+                                                    📥 Download Text Files (ZIP)
+                                                </button>
+                                                <button onClick={() => downloadBatchResults('json')} className="icon-button">
+                                                    📥 Download JSON Files (ZIP)
+                                                </button>
+                                            </>
+                                        )}
                                         <button onClick={resetForm} className="secondary-button">
-                                            Start New Batch
+                                            {batchResults.filter(r => !r.success).length > 0 ? 'Start Over' : 'Start New Batch'}
                                         </button>
                                     </>
                                 )}
