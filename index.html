@@ -21,6 +21,39 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
+        const ASSESSMENT_TEMPLATE_INSTRUCTIONS = `Respond using the exact structure below. Include every heading even if a section is brief.
+
+### Assessment Summary
+- Overall Score: <number>/100
+- Snapshot: <one-sentence highlight of performance>
+
+### Rubric Feedback
+- Statutory & Traditional Amenability (score/10): <feedback>
+- General Jurisdiction Analysis (score/10): <feedback>
+- Specific Jurisdiction – Purposeful Availment (score/30): <feedback>
+- Specific Jurisdiction – Arise Out Of / Relate To (score/20): <feedback>
+- Specific Jurisdiction – Reasonableness (score/30): <feedback>
+
+### Writing & Organization
+- Strengths: <comma-separated or bulleted strengths targeting writing choices>
+- Improvement Opportunities: <comma-separated or bulleted improvements>
+
+### Next Steps
+1. <first prioritized action item>
+2. <second prioritized action item>`;
+
+        const MAX_COMPLETION_TOKEN_LIMITS = {
+            anthropic: 8000,
+            openai: 16000,
+            google: 8192,
+            openrouter: {
+                anthropic: 8000,
+                openai: 16000,
+                google: 8192,
+                default: 16000
+            }
+        };
+
         // Initialize PDF.js worker
         if (typeof pdfjsLib !== 'undefined') {
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -539,12 +572,15 @@ MODEL ANSWER:
 ${data.modelAnswer}
 
 RUBRIC:
-${data.rubric}`;
+${data.rubric}
+
+RESPONSE TEMPLATE (MANDATORY):
+${ASSESSMENT_TEMPLATE_INSTRUCTIONS}`;
 
                     const nonCacheableContent = `STUDENT ANSWER:
 ${data.studentAnswer}
 
-Provide a comprehensive assessment following the legal writing assessment skill framework.`;
+Provide a comprehensive assessment that follows the response template and tailors commentary to this student's work.`;
 
                     const fullPrompt = cacheableContent + '\n\n' + nonCacheableContent;
 
@@ -571,7 +607,10 @@ ${data.modelAnswer}
 RUBRIC:
 ${data.rubric}
 
-Provide a comprehensive assessment following the legal writing assessment skill framework.`;
+RESPONSE TEMPLATE (MANDATORY):
+${ASSESSMENT_TEMPLATE_INSTRUCTIONS}
+
+Fill in each section with specific, student-focused feedback and concrete, actionable advice.`;
 
                     const response = await callLLM(assessmentPrompt);
                     result = response;
@@ -933,7 +972,7 @@ Generated: ${new Date().toISOString()}
                             },
                             body: JSON.stringify({
                                 model: model,
-                                max_tokens: 4000,
+                                max_tokens: MAX_COMPLETION_TOKEN_LIMITS.anthropic,
                                 messages: messages
                             })
                         });
@@ -981,7 +1020,7 @@ Generated: ${new Date().toISOString()}
                         body: JSON.stringify({
                             model: model,
                             messages: messages,
-                            max_tokens: 4000
+                            max_tokens: MAX_COMPLETION_TOKEN_LIMITS.openai
                         })
                     });
 
@@ -1007,7 +1046,7 @@ Generated: ${new Date().toISOString()}
                                 parts: [{ text: prompt }]
                             }],
                             generationConfig: {
-                                maxOutputTokens: 4000
+                                maxOutputTokens: MAX_COMPLETION_TOKEN_LIMITS.google
                             }
                         })
                     });
@@ -1062,7 +1101,13 @@ Generated: ${new Date().toISOString()}
                         body: JSON.stringify({
                             model: model,
                             messages: messages,
-                            max_tokens: 4000
+                            max_tokens: model.startsWith('anthropic/')
+                                ? MAX_COMPLETION_TOKEN_LIMITS.openrouter.anthropic
+                                : model.startsWith('openai/')
+                                    ? MAX_COMPLETION_TOKEN_LIMITS.openrouter.openai
+                                    : model.includes('gemini-2.5')
+                                        ? MAX_COMPLETION_TOKEN_LIMITS.openrouter.google
+                                        : MAX_COMPLETION_TOKEN_LIMITS.openrouter.default
                         })
                     });
 
