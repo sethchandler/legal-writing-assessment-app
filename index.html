@@ -106,9 +106,51 @@
             // Caching control state
             const [cachingEnabled, setCachingEnabled] = useState(true);
 
+            // Prompt templates loaded from files
+            const [prompts, setPrompts] = useState({
+                assessment: '',
+                challenge: '',
+                arbitration: '',
+                errorTranslation: ''
+            });
+
             // Error handling states
             const [errorDiagnosisModel, setErrorDiagnosisModel] = useState(null);
             const [useCustomErrorModel, setUseCustomErrorModel] = useState(false);
+
+            // Load prompts from external files on component mount
+            useEffect(() => {
+                const loadPrompts = async () => {
+                    try {
+                        const [assessmentRes, challengeRes, arbitrationRes, errorRes] = await Promise.all([
+                            fetch('prompts/assessment.txt'),
+                            fetch('prompts/challenge.txt'),
+                            fetch('prompts/arbitration.txt'),
+                            fetch('prompts/error-translation.txt')
+                        ]);
+
+                        const [assessment, challenge, arbitration, errorTranslation] = await Promise.all([
+                            assessmentRes.text(),
+                            challengeRes.text(),
+                            arbitrationRes.text(),
+                            errorRes.text()
+                        ]);
+
+                        setPrompts({
+                            assessment,
+                            challenge,
+                            arbitration,
+                            errorTranslation
+                        });
+                        console.log('Prompts loaded successfully from external files');
+                    } catch (err) {
+                        console.error('Failed to load prompts:', err);
+                        setError('Failed to load prompt templates. Please refresh the page.');
+                    }
+                };
+
+                loadPrompts();
+            }, []);
 
             // Error mapping dictionary for common errors
             const ERROR_MESSAGE_MAP = {
@@ -212,13 +254,7 @@
             // Use LLM to translate error messages
             const translateErrorWithLLM = async (error) => {
                 const errorMessage = error?.message || String(error);
-                const translationPrompt = `You are a helpful assistant explaining technical errors to non-technical users (law professors and students).
-Translate this technical error message into plain, clear English that explains what went wrong and suggests a solution.
-Be concise (1-2 sentences max).
-
-Technical error: "${errorMessage}"
-
-Plain English explanation:`;
+                const translationPrompt = prompts.errorTranslation.replace('{{ERROR}}', errorMessage);
 
                 try {
                     // Determine which model to use
@@ -596,24 +632,12 @@ Provide a comprehensive assessment that follows the response template and tailor
                     result = response;
                 } else {
                     // No caching support, use standard prompt
-                    const assessmentPrompt = `You are an expert legal writing professor. Assess this student's legal analysis answer using the provided question, model answer, and rubric.
-
-QUESTION:
-${data.question}
-
-STUDENT ANSWER:
-${data.studentAnswer}
-
-MODEL ANSWER:
-${data.modelAnswer}
-
-RUBRIC:
-${data.rubric}
-
-RESPONSE TEMPLATE (MANDATORY):
-${ASSESSMENT_TEMPLATE_INSTRUCTIONS}
-
-Fill in each section with specific, student-focused feedback and concrete, actionable advice.`;
+                    const assessmentPrompt = prompts.assessment
+                        .replace('{{QUESTION}}', data.question)
+                        .replace('{{STUDENT_ANSWER}}', data.studentAnswer)
+                        .replace('{{MODEL_ANSWER}}', data.modelAnswer)
+                        .replace('{{RUBRIC}}', data.rubric)
+                        .replace('{{ASSESSMENT_TEMPLATE}}', ASSESSMENT_TEMPLATE_INSTRUCTIONS);
 
                     const response = await callLLM(assessmentPrompt);
                     result = response;
@@ -627,44 +651,12 @@ Fill in each section with specific, student-focused feedback and concrete, actio
                 console.log('performChallenge called with:', { hasData: !!data, hasAssessment: !!assessment });
                 setStatusMessage('🎯 Student advocate reviewing assessment...');
 
-                const challengePrompt = `You are a student advocate reviewing an assessment for fairness. Your role is to identify any legitimate ways the student's work may have been under-credited.
-
-QUESTION:
-${data.question}
-
-STUDENT ANSWER:
-${data.studentAnswer}
-
-MODEL ANSWER:
-${data.modelAnswer}
-
-RUBRIC:
-${data.rubric}
-
-ORIGINAL ASSESSMENT:
-${assessment}
-
-Your task:
-1. Review the assessment carefully for fairness
-2. Identify where the student demonstrated understanding that may not have been fully credited
-3. Make plausible, reasonable arguments for the student
-4. Focus on whether the assessment fairly rewarded what the student actually did
-
-DO NOT:
-- Challenge the correctness of the rubric or model answer
-- Challenge whether the test is fair
-- Make ridiculous or far-fetched arguments
-- Simply advocate for a higher grade without justification
-
-Provide a structured response:
-### Areas of Potential Under-Recognition
-[List specific points where student work may deserve more credit]
-
-### Supporting Arguments
-[For each area, explain why additional credit may be warranted]
-
-### Conclusion
-[Brief summary of the strongest arguments for reconsideration]`;
+                const challengePrompt = prompts.challenge
+                    .replace('{{QUESTION}}', data.question)
+                    .replace('{{STUDENT_ANSWER}}', data.studentAnswer)
+                    .replace('{{MODEL_ANSWER}}', data.modelAnswer)
+                    .replace('{{RUBRIC}}', data.rubric)
+                    .replace('{{ASSESSMENT}}', assessment);
 
                 const challenge = await callLLM(challengePrompt);
                 console.log('performChallenge completed, challenge length:', challenge?.length);
@@ -676,43 +668,13 @@ Provide a structured response:
                 console.log('performArbitration called with:', { hasData: !!data, hasAssessment: !!assessment, hasChallenge: !!challenge });
                 setStatusMessage('⚖️ Arbitrator reviewing challenge...');
 
-                const arbitrationPrompt = `You are a fair arbitrator reviewing a challenge to an assessment. Your role is to determine if the challenge has merit and whether the assessment should be revised.
-
-Context: You are operating in a zero-sum grading system where every point given to one student affects others. You must be fair to the student but not lenient. Legitimate challenges should be respected, but grade inflation must be avoided.
-
-QUESTION:
-${data.question}
-
-STUDENT ANSWER:
-${data.studentAnswer}
-
-MODEL ANSWER:
-${data.modelAnswer}
-
-RUBRIC:
-${data.rubric}
-
-ORIGINAL ASSESSMENT:
-${assessment}
-
-STUDENT ADVOCATE'S CHALLENGE:
-${challenge}
-
-Your task:
-1. Evaluate each argument in the challenge for validity
-2. Determine if the original assessment missed legitimate demonstrations of competence
-3. Decide what revisions, if any, are warranted
-4. Revise the assessment only where truly justified
-
-Provide a structured response:
-### Challenge Review
-[Evaluate each major argument - valid, partially valid, or not valid]
-
-### Arbitrator's Decision
-[For each valid or partially valid point, explain what revision is warranted and why]
-
-### Revised Assessment
-[Provide the complete revised assessment incorporating only legitimate adjustments. Use the same format as the original assessment template, updating scores and feedback as appropriate.]`;
+                const arbitrationPrompt = prompts.arbitration
+                    .replace('{{QUESTION}}', data.question)
+                    .replace('{{STUDENT_ANSWER}}', data.studentAnswer)
+                    .replace('{{MODEL_ANSWER}}', data.modelAnswer)
+                    .replace('{{RUBRIC}}', data.rubric)
+                    .replace('{{ASSESSMENT}}', assessment)
+                    .replace('{{CHALLENGE}}', challenge);
 
                 const arbitration = await callLLM(arbitrationPrompt);
                 console.log('performArbitration completed, arbitration length:', arbitration?.length);
