@@ -1042,10 +1042,30 @@ Provide a structured response:
                                 throw new Error(`Failed to generate assessment fields: ${genErr.message}`);
                             }
 
-                            // Perform assessment
+                            // Perform complete 3-step assessment workflow
                             let assessment;
                             try {
-                                assessment = await performSingleAssessment(completeData);
+                                console.log(`Batch: Starting 3-step workflow for ${fileInfo.name}`);
+
+                                // Step 1: Initial assessment
+                                const initialAssessment = await performSingleAssessment(completeData);
+                                console.log(`Batch: Initial assessment complete for ${fileInfo.name}`);
+
+                                // Step 2: Challenge (student advocate)
+                                const challenge = await performChallenge(completeData, initialAssessment);
+                                console.log(`Batch: Challenge complete for ${fileInfo.name}`);
+
+                                // Step 3: Arbitration
+                                const arbitration = await performArbitration(completeData, initialAssessment, challenge);
+                                console.log(`Batch: Arbitration complete for ${fileInfo.name}`);
+
+                                // Store all results in proper format
+                                assessment = {
+                                    original: initialAssessment,
+                                    challenge: challenge,
+                                    arbitration: arbitration
+                                };
+                                console.log(`Batch: Complete assessment created for ${fileInfo.name}`);
                             } catch (assessErr) {
                                 throw new Error(`Failed to perform assessment: ${assessErr.message}`);
                             }
@@ -1124,10 +1144,31 @@ Generated: ${new Date().toISOString()}
                             if (outputControls.includeRubric && result.data.rubric) {
                                 content += `RUBRIC:\n${result.data.rubric}\n\n`;
                             }
-                            if (outputControls.includeAssessment && result.assessment) {
-                                content += `ASSESSMENT:\n${result.assessment}`;
+
+                            // Handle challenge workflow format
+                            if (result.assessment) {
+                                if (typeof result.assessment === 'object' && result.assessment.original) {
+                                    // New challenge workflow format
+                                    if (outputControls.includeAssessment && result.assessment.original) {
+                                        content += `ORIGINAL ASSESSMENT:\n${result.assessment.original}\n\n`;
+                                    }
+                                    if (outputControls.includeChallenge && result.assessment.challenge) {
+                                        content += `STUDENT ADVOCATE'S CHALLENGE:\n${result.assessment.challenge}\n\n`;
+                                    }
+                                    if (outputControls.includeArbitration && result.assessment.arbitration) {
+                                        content += `ARBITRATION REVIEW:\n${result.assessment.arbitration}\n\n`;
+                                    }
+                                    if (outputControls.includeFinalAssessment && result.assessment.arbitration) {
+                                        content += `FINAL ASSESSMENT:\n${result.assessment.arbitration}`;
+                                    }
+                                } else if (typeof result.assessment === 'string') {
+                                    // Legacy string format
+                                    if (outputControls.includeAssessment) {
+                                        content += `ASSESSMENT:\n${result.assessment}`;
+                                    }
+                                }
                             }
-                            
+
                             zip.file(fileName, content);
                         } else {
                             const fileName = result.fileName.replace(/\.[^/.]+$/, '') + '_ERROR.txt';
@@ -1156,10 +1197,31 @@ Generated: ${new Date().toISOString()}
                             if (outputControls.includeRubric && result.data.rubric) {
                                 jsonContent.rubric = result.data.rubric;
                             }
-                            if (outputControls.includeAssessment && result.assessment) {
-                                jsonContent.assessment = result.assessment;
+
+                            // Handle challenge workflow format
+                            if (result.assessment) {
+                                if (typeof result.assessment === 'object' && result.assessment.original) {
+                                    // New challenge workflow format
+                                    if (outputControls.includeAssessment && result.assessment.original) {
+                                        jsonContent.originalAssessment = result.assessment.original;
+                                    }
+                                    if (outputControls.includeChallenge && result.assessment.challenge) {
+                                        jsonContent.challenge = result.assessment.challenge;
+                                    }
+                                    if (outputControls.includeArbitration && result.assessment.arbitration) {
+                                        jsonContent.arbitrationReview = result.assessment.arbitration;
+                                    }
+                                    if (outputControls.includeFinalAssessment && result.assessment.arbitration) {
+                                        jsonContent.finalAssessment = result.assessment.arbitration;
+                                    }
+                                } else if (typeof result.assessment === 'string') {
+                                    // Legacy string format
+                                    if (outputControls.includeAssessment) {
+                                        jsonContent.assessment = result.assessment;
+                                    }
+                                }
                             }
-                            
+
                             zip.file(fileName, JSON.stringify(jsonContent, null, 2));
                         } else {
                             const fileName = result.fileName.replace(/\.[^/.]+$/, '') + '_ERROR.json';
