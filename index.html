@@ -853,11 +853,20 @@ Provide a structured response:
                 if (outputControls.includeRubric && data.rubric) filteredData.rubric = data.rubric;
 
                 // Handle new challenge workflow format
-                if (data.originalAssessment) {
-                    if (outputControls.includeAssessment) filteredData.originalAssessment = data.originalAssessment;
-                    if (outputControls.includeChallenge && data.challenge) filteredData.challenge = data.challenge;
-                    if (outputControls.includeArbitration && data.arbitration) filteredData.arbitrationReview = data.arbitration;
-                    if (outputControls.includeFinalAssessment && data.arbitration) filteredData.finalAssessment = data.arbitration;
+                if (data.originalAssessment || data.challenge || data.arbitration) {
+                    // Has challenge workflow data
+                    if (outputControls.includeAssessment && data.originalAssessment) {
+                        filteredData.originalAssessment = data.originalAssessment;
+                    }
+                    if (outputControls.includeChallenge && data.challenge) {
+                        filteredData.challenge = data.challenge;
+                    }
+                    if (outputControls.includeArbitration && data.arbitration) {
+                        filteredData.arbitrationReview = data.arbitration;
+                    }
+                    if (outputControls.includeFinalAssessment && data.arbitration) {
+                        filteredData.finalAssessment = data.arbitration;
+                    }
                 } else if (data.assessment && outputControls.includeAssessment) {
                     // Legacy format support
                     filteredData.assessment = data.assessment;
