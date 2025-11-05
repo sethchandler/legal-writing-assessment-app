@@ -874,8 +874,9 @@ Provide a structured response:
                 URL.revokeObjectURL(url);
             };
 
-            const downloadText = (text, filename) => {
+            const downloadText = (assessmentData, filename) => {
                 let content = '';
+
                 if (outputControls.includeQuestion && jsonData?.question) {
                     content += `QUESTION:\n${jsonData.question}\n\n`;
                 }
@@ -888,10 +889,29 @@ Provide a structured response:
                 if (outputControls.includeRubric && jsonData?.rubric) {
                     content += `RUBRIC:\n${jsonData.rubric}\n\n`;
                 }
-                if (outputControls.includeAssessment && text) {
-                    content += `ASSESSMENT:\n${text}`;
+
+                // Handle new challenge workflow format
+                if (typeof assessmentData === 'object' && assessmentData.original) {
+                    // New format with challenge workflow
+                    if (outputControls.includeAssessment && assessmentData.original) {
+                        content += `ORIGINAL ASSESSMENT:\n${assessmentData.original}\n\n`;
+                    }
+                    if (outputControls.includeChallenge && assessmentData.challenge) {
+                        content += `STUDENT ADVOCATE'S CHALLENGE:\n${assessmentData.challenge}\n\n`;
+                    }
+                    if (outputControls.includeArbitration && assessmentData.arbitration) {
+                        content += `ARBITRATION REVIEW:\n${assessmentData.arbitration}\n\n`;
+                    }
+                    if (outputControls.includeFinalAssessment && assessmentData.arbitration) {
+                        content += `FINAL ASSESSMENT:\n${assessmentData.arbitration}\n\n`;
+                    }
+                } else if (typeof assessmentData === 'string') {
+                    // Legacy format - single assessment string
+                    if (outputControls.includeAssessment && assessmentData) {
+                        content += `ASSESSMENT:\n${assessmentData}\n\n`;
+                    }
                 }
-                
+
                 const blob = new Blob([content], { type: 'text/plain' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -1864,10 +1884,10 @@ Generated: ${new Date().toISOString()}
 
                                     <div className="download-buttons">
                                         <button
-                                            onClick={() => downloadText(assessment.arbitration, 'final-assessment.txt')}
+                                            onClick={() => downloadText(assessment, 'assessment-complete.txt')}
                                             className="secondary-button icon-button"
                                         >
-                                            📥 Download Final Assessment (TXT)
+                                            📥 Download Assessment (TXT)
                                         </button>
                                         <button
                                             onClick={() => downloadJSON({
