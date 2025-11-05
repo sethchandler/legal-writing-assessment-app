@@ -95,10 +95,10 @@
             const [outputControls, setOutputControls] = useState({
                 includeQuestion: true,
                 includeStudentAnswer: true,
-                includeModelAnswer: true,
-                includeRubric: true,
-                includeAssessment: true,
-                includeChallenge: true,
+                includeModelAnswer: false,
+                includeRubric: false,
+                includeAssessment: false,
+                includeChallenge: false,
                 includeArbitration: true
             });
 
@@ -728,32 +728,80 @@ Provide a structured response:
 
                 try {
                     let json;
-                    
+                    let allFieldsProvided = false;
+
                     if (inputMode === 'json') {
                         // Parse uploaded JSON
                         setStatusMessage('📄 Parsing JSON input...');
                         json = JSON.parse(jsonInput);
                         setStatusMessage('✓ JSON parsed successfully');
+
+                        // Check if all required fields are provided
+                        allFieldsProvided = json.question && json.studentAnswer && json.modelAnswer && json.rubric;
                     } else {
-                        // Generate from form
-                        setStatusMessage('📝 Creating assessment data...');
-                        const completeData = await generateMissingFields(formData.studentAnswer);
-                        
-                        json = {
-                            question: completeData.question,
-                            studentAnswer: completeData.studentAnswer,
-                            modelAnswer: completeData.modelAnswer,
-                            rubric: completeData.rubric,
-                            metadata: {
-                                generatedAt: new Date().toISOString(),
-                                generatedFields: getMissingFields()
-                            }
-                        };
+                        // Check if all form fields are provided
+                        allFieldsProvided = formData.question && formData.studentAnswer && formData.modelAnswer && formData.rubric;
+
+                        if (allFieldsProvided) {
+                            // All fields provided, use them directly
+                            json = {
+                                question: formData.question,
+                                studentAnswer: formData.studentAnswer,
+                                modelAnswer: formData.modelAnswer,
+                                rubric: formData.rubric,
+                                metadata: {
+                                    generatedAt: new Date().toISOString(),
+                                    generatedFields: []
+                                }
+                            };
+                        } else {
+                            // Generate missing fields
+                            setStatusMessage('📝 Creating assessment data...');
+                            const completeData = await generateMissingFields(formData.studentAnswer);
+
+                            json = {
+                                question: completeData.question,
+                                studentAnswer: completeData.studentAnswer,
+                                modelAnswer: completeData.modelAnswer,
+                                rubric: completeData.rubric,
+                                metadata: {
+                                    generatedAt: new Date().toISOString(),
+                                    generatedFields: getMissingFields()
+                                }
+                            };
+                        }
                     }
 
                     setJsonData(json);
-                    setStep(2);
-                    setStatusMessage('');
+
+                    // Smart detection: if all fields provided, proceed directly to assessment
+                    if (allFieldsProvided) {
+                        setStatusMessage('✓ All fields provided - proceeding to assessment...');
+
+                        // Step 1: Initial assessment
+                        const initialAssessment = await performSingleAssessment(json);
+
+                        // Step 2: Challenge (student advocate)
+                        const challenge = await performChallenge(json, initialAssessment);
+
+                        // Step 3: Arbitration
+                        const arbitration = await performArbitration(json, initialAssessment, challenge);
+
+                        // Store all results
+                        const completeAssessment = {
+                            original: initialAssessment,
+                            challenge: challenge,
+                            arbitration: arbitration
+                        };
+
+                        setAssessment(completeAssessment);
+                        setStep(3);
+                        setStatusMessage('');
+                    } else {
+                        // Missing fields were generated, show step 2 for review
+                        setStep(2);
+                        setStatusMessage('');
+                    }
                 } catch (err) {
                     setError(err.message);
                     setStatusMessage('');
@@ -1300,10 +1348,10 @@ Generated: ${new Date().toISOString()}
                 setOutputControls({
                     includeQuestion: true,
                     includeStudentAnswer: true,
-                    includeModelAnswer: true,
-                    includeRubric: true,
-                    includeAssessment: true,
-                    includeChallenge: true,
+                    includeModelAnswer: false,
+                    includeRubric: false,
+                    includeAssessment: false,
+                    includeChallenge: false,
                     includeArbitration: true
                 });
             };
