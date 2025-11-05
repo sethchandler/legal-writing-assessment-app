@@ -624,6 +624,7 @@ Fill in each section with specific, student-focused feedback and concrete, actio
             };
 
             const performChallenge = async (data, assessment) => {
+                console.log('performChallenge called with:', { hasData: !!data, hasAssessment: !!assessment });
                 setStatusMessage('🎯 Student advocate reviewing assessment...');
 
                 const challengePrompt = `You are a student advocate reviewing an assessment for fairness. Your role is to identify any legitimate ways the student's work may have been under-credited.
@@ -666,11 +667,13 @@ Provide a structured response:
 [Brief summary of the strongest arguments for reconsideration]`;
 
                 const challenge = await callLLM(challengePrompt);
+                console.log('performChallenge completed, challenge length:', challenge?.length);
                 setStatusMessage('✓ Challenge completed');
                 return challenge;
             };
 
             const performArbitration = async (data, assessment, challenge) => {
+                console.log('performArbitration called with:', { hasData: !!data, hasAssessment: !!assessment, hasChallenge: !!challenge });
                 setStatusMessage('⚖️ Arbitrator reviewing challenge...');
 
                 const arbitrationPrompt = `You are a fair arbitrator reviewing a challenge to an assessment. Your role is to determine if the challenge has merit and whether the assessment should be revised.
@@ -712,6 +715,7 @@ Provide a structured response:
 [Provide the complete revised assessment incorporating only legitimate adjustments. Use the same format as the original assessment template, updating scores and feedback as appropriate.]`;
 
                 const arbitration = await callLLM(arbitrationPrompt);
+                console.log('performArbitration completed, arbitration length:', arbitration?.length);
                 setStatusMessage('✓ Arbitration completed');
                 return arbitration;
             };
@@ -777,16 +781,23 @@ Provide a structured response:
 
                     // Smart detection: if all fields provided, proceed directly to assessment
                     if (allFieldsProvided) {
+                        console.log('processSingleMode: allFieldsProvided=true, proceeding to 3-step workflow');
                         setStatusMessage('✓ All fields provided - proceeding to assessment...');
 
                         // Step 1: Initial assessment
+                        console.log('processSingleMode: calling performSingleAssessment');
                         const initialAssessment = await performSingleAssessment(json);
+                        console.log('processSingleMode: initialAssessment completed, length:', initialAssessment?.length);
 
                         // Step 2: Challenge (student advocate)
+                        console.log('processSingleMode: calling performChallenge');
                         const challenge = await performChallenge(json, initialAssessment);
+                        console.log('processSingleMode: challenge completed, length:', challenge?.length);
 
                         // Step 3: Arbitration
+                        console.log('processSingleMode: calling performArbitration');
                         const arbitration = await performArbitration(json, initialAssessment, challenge);
+                        console.log('processSingleMode: arbitration completed, length:', arbitration?.length);
 
                         // Store all results
                         const completeAssessment = {
@@ -794,8 +805,14 @@ Provide a structured response:
                             challenge: challenge,
                             arbitration: arbitration
                         };
+                        console.log('processSingleMode: completeAssessment created:', {
+                            hasOriginal: !!completeAssessment.original,
+                            hasChallenge: !!completeAssessment.challenge,
+                            hasArbitration: !!completeAssessment.arbitration
+                        });
 
                         setAssessment(completeAssessment);
+                        console.log('processSingleMode: setAssessment called');
                         setStep(3);
                         setStatusMessage('');
                     } else {
@@ -814,18 +831,25 @@ Provide a structured response:
             const performSingleAssessmentStep = async () => {
                 if (!jsonData) return;
 
+                console.log('performSingleAssessmentStep called, jsonData exists:', !!jsonData);
                 setLoading(true);
                 setError('');
 
                 try {
                     // Step 1: Initial assessment
+                    console.log('performSingleAssessmentStep: calling performSingleAssessment');
                     const initialAssessment = await performSingleAssessment(jsonData);
+                    console.log('performSingleAssessmentStep: initialAssessment completed, length:', initialAssessment?.length);
 
                     // Step 2: Challenge (student advocate)
+                    console.log('performSingleAssessmentStep: calling performChallenge');
                     const challenge = await performChallenge(jsonData, initialAssessment);
+                    console.log('performSingleAssessmentStep: challenge completed, length:', challenge?.length);
 
                     // Step 3: Arbitration
+                    console.log('performSingleAssessmentStep: calling performArbitration');
                     const arbitration = await performArbitration(jsonData, initialAssessment, challenge);
+                    console.log('performSingleAssessmentStep: arbitration completed, length:', arbitration?.length);
 
                     // Store all results
                     const completeAssessment = {
@@ -833,8 +857,14 @@ Provide a structured response:
                         challenge: challenge,
                         arbitration: arbitration
                     };
+                    console.log('performSingleAssessmentStep: completeAssessment created:', {
+                        hasOriginal: !!completeAssessment.original,
+                        hasChallenge: !!completeAssessment.challenge,
+                        hasArbitration: !!completeAssessment.arbitration
+                    });
 
                     setAssessment(completeAssessment);
+                    console.log('performSingleAssessmentStep: setAssessment called');
                     setStep(3);
                     setStatusMessage('');
                 } catch (err) {
@@ -846,6 +876,12 @@ Provide a structured response:
             };
 
             const downloadJSON = (data, filename) => {
+                console.log('downloadJSON called with:', {
+                    hasOriginalAssessment: !!data.originalAssessment,
+                    hasChallenge: !!data.challenge,
+                    hasArbitration: !!data.arbitration,
+                    outputControls: outputControls
+                });
                 const filteredData = {};
                 if (outputControls.includeQuestion && data.question) filteredData.question = data.question;
                 if (outputControls.includeStudentAnswer && data.studentAnswer) filteredData.studentAnswer = data.studentAnswer;
@@ -884,6 +920,13 @@ Provide a structured response:
             };
 
             const downloadText = (assessmentData, filename) => {
+                console.log('downloadText called with:', {
+                    assessmentType: typeof assessmentData,
+                    hasOriginal: assessmentData?.original,
+                    hasChallenge: assessmentData?.challenge,
+                    hasArbitration: assessmentData?.arbitration,
+                    outputControls: outputControls
+                });
                 let content = '';
 
                 if (outputControls.includeQuestion && jsonData?.question) {
@@ -901,25 +944,32 @@ Provide a structured response:
 
                 // Handle new challenge workflow format
                 if (typeof assessmentData === 'object' && assessmentData.original) {
+                    console.log('downloadText: detected challenge workflow format');
                     // New format with challenge workflow
                     if (outputControls.includeAssessment && assessmentData.original) {
+                        console.log('downloadText: adding original assessment');
                         content += `ORIGINAL ASSESSMENT:\n${assessmentData.original}\n\n`;
                     }
                     if (outputControls.includeChallenge && assessmentData.challenge) {
+                        console.log('downloadText: adding challenge');
                         content += `STUDENT ADVOCATE'S CHALLENGE:\n${assessmentData.challenge}\n\n`;
                     }
                     if (outputControls.includeArbitration && assessmentData.arbitration) {
+                        console.log('downloadText: adding arbitration review');
                         content += `ARBITRATION REVIEW:\n${assessmentData.arbitration}\n\n`;
                     }
                     if (outputControls.includeFinalAssessment && assessmentData.arbitration) {
+                        console.log('downloadText: adding final assessment');
                         content += `FINAL ASSESSMENT:\n${assessmentData.arbitration}\n\n`;
                     }
                 } else if (typeof assessmentData === 'string') {
+                    console.log('downloadText: detected legacy string format');
                     // Legacy format - single assessment string
                     if (outputControls.includeAssessment && assessmentData) {
                         content += `ASSESSMENT:\n${assessmentData}\n\n`;
                     }
                 }
+                console.log('downloadText: final content length:', content.length);
 
                 const blob = new Blob([content], { type: 'text/plain' });
                 const url = URL.createObjectURL(blob);
