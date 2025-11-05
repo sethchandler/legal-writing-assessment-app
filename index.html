@@ -97,7 +97,9 @@
                 includeStudentAnswer: true,
                 includeModelAnswer: true,
                 includeRubric: true,
-                includeAssessment: true
+                includeAssessment: true,
+                includeChallenge: true,
+                includeArbitration: true
             });
 
             // Caching control state
@@ -800,16 +802,17 @@ Provide a structured response:
                 if (outputControls.includeStudentAnswer && data.studentAnswer) filteredData.studentAnswer = data.studentAnswer;
                 if (outputControls.includeModelAnswer && data.modelAnswer) filteredData.modelAnswer = data.modelAnswer;
                 if (outputControls.includeRubric && data.rubric) filteredData.rubric = data.rubric;
-                if (outputControls.includeAssessment) {
-                    // Handle both old format (string) and new format (with challenge)
-                    if (data.originalAssessment) {
-                        filteredData.originalAssessment = data.originalAssessment;
-                        filteredData.challenge = data.challenge;
-                        filteredData.arbitration = data.arbitration;
-                    } else if (data.assessment) {
-                        filteredData.assessment = data.assessment;
-                    }
+
+                // Handle new challenge workflow format
+                if (data.originalAssessment) {
+                    if (outputControls.includeAssessment) filteredData.originalAssessment = data.originalAssessment;
+                    if (outputControls.includeChallenge && data.challenge) filteredData.challenge = data.challenge;
+                    if (outputControls.includeArbitration && data.arbitration) filteredData.arbitration = data.arbitration;
+                } else if (data.assessment && outputControls.includeAssessment) {
+                    // Legacy format support
+                    filteredData.assessment = data.assessment;
                 }
+
                 if (data.metadata) filteredData.metadata = data.metadata;
 
                 const blob = new Blob([JSON.stringify(filteredData, null, 2)], { type: 'application/json' });
@@ -1299,7 +1302,9 @@ Generated: ${new Date().toISOString()}
                     includeStudentAnswer: true,
                     includeModelAnswer: true,
                     includeRubric: true,
-                    includeAssessment: true
+                    includeAssessment: true,
+                    includeChallenge: true,
+                    includeArbitration: true
                 });
             };
 
@@ -1713,7 +1718,23 @@ Generated: ${new Date().toISOString()}
                                                         checked={outputControls.includeAssessment}
                                                         onChange={(e) => handleOutputControlChange('includeAssessment', e.target.checked)}
                                                     />
-                                                    <span>Assessment</span>
+                                                    <span>Original Assessment</span>
+                                                </label>
+                                                <label className="output-control-label">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={outputControls.includeChallenge}
+                                                        onChange={(e) => handleOutputControlChange('includeChallenge', e.target.checked)}
+                                                    />
+                                                    <span>Challenge</span>
+                                                </label>
+                                                <label className="output-control-label">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={outputControls.includeArbitration}
+                                                        onChange={(e) => handleOutputControlChange('includeArbitration', e.target.checked)}
+                                                    />
+                                                    <span>Arbitration</span>
                                                 </label>
                                             </div>
                                         </div>
@@ -2054,7 +2075,23 @@ Generated: ${new Date().toISOString()}
                                                 checked={outputControls.includeAssessment}
                                                 onChange={(e) => handleOutputControlChange('includeAssessment', e.target.checked)}
                                             />
-                                            <span>Assessment</span>
+                                            <span>Original Assessment</span>
+                                        </label>
+                                        <label className="output-control-label">
+                                            <input
+                                                type="checkbox"
+                                                checked={outputControls.includeChallenge}
+                                                onChange={(e) => handleOutputControlChange('includeChallenge', e.target.checked)}
+                                            />
+                                            <span>Challenge</span>
+                                        </label>
+                                        <label className="output-control-label">
+                                            <input
+                                                type="checkbox"
+                                                checked={outputControls.includeArbitration}
+                                                onChange={(e) => handleOutputControlChange('includeArbitration', e.target.checked)}
+                                            />
+                                            <span>Arbitration</span>
                                         </label>
                                     </div>
                                 </div>
