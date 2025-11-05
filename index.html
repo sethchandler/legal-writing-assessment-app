@@ -620,6 +620,99 @@ Fill in each section with specific, student-focused feedback and concrete, actio
                 return result;
             };
 
+            const performChallenge = async (data, assessment) => {
+                setStatusMessage('🎯 Student advocate reviewing assessment...');
+
+                const challengePrompt = `You are a student advocate reviewing an assessment for fairness. Your role is to identify any legitimate ways the student's work may have been under-credited.
+
+QUESTION:
+${data.question}
+
+STUDENT ANSWER:
+${data.studentAnswer}
+
+MODEL ANSWER:
+${data.modelAnswer}
+
+RUBRIC:
+${data.rubric}
+
+ORIGINAL ASSESSMENT:
+${assessment}
+
+Your task:
+1. Review the assessment carefully for fairness
+2. Identify where the student demonstrated understanding that may not have been fully credited
+3. Make plausible, reasonable arguments for the student
+4. Focus on whether the assessment fairly rewarded what the student actually did
+
+DO NOT:
+- Challenge the correctness of the rubric or model answer
+- Challenge whether the test is fair
+- Make ridiculous or far-fetched arguments
+- Simply advocate for a higher grade without justification
+
+Provide a structured response:
+### Areas of Potential Under-Recognition
+[List specific points where student work may deserve more credit]
+
+### Supporting Arguments
+[For each area, explain why additional credit may be warranted]
+
+### Conclusion
+[Brief summary of the strongest arguments for reconsideration]`;
+
+                const challenge = await callLLM(challengePrompt);
+                setStatusMessage('✓ Challenge completed');
+                return challenge;
+            };
+
+            const performArbitration = async (data, assessment, challenge) => {
+                setStatusMessage('⚖️ Arbitrator reviewing challenge...');
+
+                const arbitrationPrompt = `You are a fair arbitrator reviewing a challenge to an assessment. Your role is to determine if the challenge has merit and whether the assessment should be revised.
+
+Context: You are operating in a zero-sum grading system where every point given to one student affects others. You must be fair to the student but not lenient. Legitimate challenges should be respected, but grade inflation must be avoided.
+
+QUESTION:
+${data.question}
+
+STUDENT ANSWER:
+${data.studentAnswer}
+
+MODEL ANSWER:
+${data.modelAnswer}
+
+RUBRIC:
+${data.rubric}
+
+ORIGINAL ASSESSMENT:
+${assessment}
+
+STUDENT ADVOCATE'S CHALLENGE:
+${challenge}
+
+Your task:
+1. Evaluate each argument in the challenge for validity
+2. Determine if the original assessment missed legitimate demonstrations of competence
+3. Decide what revisions, if any, are warranted
+4. Revise the assessment only where truly justified
+
+Provide a structured response:
+### Challenge Review
+[Evaluate each major argument - valid, partially valid, or not valid]
+
+### Arbitrator's Decision
+[For each valid or partially valid point, explain what revision is warranted and why]
+
+### Revised Assessment
+[Provide the complete revised assessment incorporating only legitimate adjustments. Use the same format as the original assessment template, updating scores and feedback as appropriate.]`;
+
+                const arbitration = await callLLM(arbitrationPrompt);
+                setStatusMessage('✓ Arbitration completed');
+                return arbitration;
+            };
+
             // Single mode processing
             const processSingleMode = async () => {
                 if (!apiKey) {
@@ -674,8 +767,23 @@ Fill in each section with specific, student-focused feedback and concrete, actio
                 setError('');
 
                 try {
-                    const response = await performSingleAssessment(jsonData);
-                    setAssessment(response);
+                    // Step 1: Initial assessment
+                    const initialAssessment = await performSingleAssessment(jsonData);
+
+                    // Step 2: Challenge (student advocate)
+                    const challenge = await performChallenge(jsonData, initialAssessment);
+
+                    // Step 3: Arbitration
+                    const arbitration = await performArbitration(jsonData, initialAssessment, challenge);
+
+                    // Store all results
+                    const completeAssessment = {
+                        original: initialAssessment,
+                        challenge: challenge,
+                        arbitration: arbitration
+                    };
+
+                    setAssessment(completeAssessment);
                     setStep(3);
                     setStatusMessage('');
                 } catch (err) {
@@ -692,9 +800,18 @@ Fill in each section with specific, student-focused feedback and concrete, actio
                 if (outputControls.includeStudentAnswer && data.studentAnswer) filteredData.studentAnswer = data.studentAnswer;
                 if (outputControls.includeModelAnswer && data.modelAnswer) filteredData.modelAnswer = data.modelAnswer;
                 if (outputControls.includeRubric && data.rubric) filteredData.rubric = data.rubric;
-                if (outputControls.includeAssessment && data.assessment) filteredData.assessment = data.assessment;
+                if (outputControls.includeAssessment) {
+                    // Handle both old format (string) and new format (with challenge)
+                    if (data.originalAssessment) {
+                        filteredData.originalAssessment = data.originalAssessment;
+                        filteredData.challenge = data.challenge;
+                        filteredData.arbitration = data.arbitration;
+                    } else if (data.assessment) {
+                        filteredData.assessment = data.assessment;
+                    }
+                }
                 if (data.metadata) filteredData.metadata = data.metadata;
-                
+
                 const blob = new Blob([JSON.stringify(filteredData, null, 2)], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -1644,22 +1761,41 @@ Generated: ${new Date().toISOString()}
 
                             {step === 3 && assessment && (
                                 <>
-                                    <div style={{padding: '30px', background: '#f7fafc', borderRadius: '12px'}}>
-                                        <h2 style={{marginBottom: '20px'}}>Assessment Results</h2>
-                                        <div style={{whiteSpace: 'pre-wrap', lineHeight: '1.8'}}>
-                                            {assessment}
+                                    <div style={{padding: '30px', background: '#f7fafc', borderRadius: '12px', marginBottom: '20px'}}>
+                                        <h2 style={{marginBottom: '20px'}}>📊 Original Assessment</h2>
+                                        <div style={{whiteSpace: 'pre-wrap', lineHeight: '1.8', padding: '20px', background: 'white', borderRadius: '8px', border: '2px solid #e2e8f0'}}>
+                                            {assessment.original}
+                                        </div>
+                                    </div>
+
+                                    <div style={{padding: '30px', background: '#fffaf0', borderRadius: '12px', marginBottom: '20px'}}>
+                                        <h2 style={{marginBottom: '20px'}}>🎯 Student Advocate's Challenge</h2>
+                                        <div style={{whiteSpace: 'pre-wrap', lineHeight: '1.8', padding: '20px', background: 'white', borderRadius: '8px', border: '2px solid #fbd38d'}}>
+                                            {assessment.challenge}
+                                        </div>
+                                    </div>
+
+                                    <div style={{padding: '30px', background: '#f0fff4', borderRadius: '12px', marginBottom: '20px'}}>
+                                        <h2 style={{marginBottom: '20px'}}>⚖️ Arbitrator's Decision & Revised Assessment</h2>
+                                        <div style={{whiteSpace: 'pre-wrap', lineHeight: '1.8', padding: '20px', background: 'white', borderRadius: '8px', border: '2px solid #9ae6b4'}}>
+                                            {assessment.arbitration}
                                         </div>
                                     </div>
 
                                     <div className="download-buttons">
-                                        <button 
-                                            onClick={() => downloadText(assessment, 'assessment-feedback.txt')}
+                                        <button
+                                            onClick={() => downloadText(assessment.arbitration, 'final-assessment.txt')}
                                             className="secondary-button icon-button"
                                         >
-                                            📥 Download Assessment (TXT)
+                                            📥 Download Final Assessment (TXT)
                                         </button>
-                                        <button 
-                                            onClick={() => downloadJSON({...jsonData, assessment}, 'complete-assessment.json')}
+                                        <button
+                                            onClick={() => downloadJSON({
+                                                ...jsonData,
+                                                originalAssessment: assessment.original,
+                                                challenge: assessment.challenge,
+                                                arbitration: assessment.arbitration
+                                            }, 'complete-assessment-with-challenge.json')}
                                             className="secondary-button icon-button"
                                         >
                                             📥 Download Complete (JSON)
