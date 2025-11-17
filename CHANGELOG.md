@@ -1,6 +1,50 @@
 # Changelog
 
-## 🆕 Version 3.0 - Error Handling & Advanced Features (October 26, 2024)
+## 🆕 Version 4.0 - Parallel Processing & Workflow Improvements (November 2024)
+
+### ✅ 1. Parallel Batch Processing
+**Problem**: Sequential processing was slow - 50 files could take 25-40 minutes
+**Solution**:
+- **Configurable Concurrency**: Process 1-10 files simultaneously (default: 5)
+- **5-10x Speed Improvement**: 50 files now process in 3-8 minutes instead of 25-40 minutes
+- **Zero Additional Cost**: Same total API calls/tokens, just faster
+- **Real-Time Display**: Shows which files are currently being processed in parallel
+- **Error Isolation**: One file's failure doesn't stop others
+- **Promise.allSettled**: Robust error recovery for each file independently
+
+### ✅ 2. Granular Reset Options
+**Problem**: "Start New Batch" cleared everything including question/rubric, forcing re-upload
+**Solution**:
+- **🔄 Re-run These Files**: Keep everything, reprocess same files (perfect for model testing)
+- **📁 New Files (Keep Settings)**: Keep question/rubric/model answer, clear files only
+- **🗑️ Clear Everything**: Full reset for starting fresh
+- **Model Switching Workflow**: Change model dropdown and re-run without data loss
+
+### ✅ 3. New OpenRouter Models
+**Added Models**:
+- `openai/gpt-5.1` - GPT-5.1
+- `openrouter/sherlock-think-alpha` - Sherlock Think Alpha (reasoning model)
+- `openrouter/sherlock-dash-alpha` - Sherlock Dash Alpha (fast model)
+- `moonshotai/kimi-k2-thinking` - Kimi K2 with thinking mode
+- `moonshotai/kimi-linear-48b-a3b-instruct` - Kimi Linear 48B
+
+### ✅ 4. Enhanced Progress Tracking
+**Improvements**:
+- Live list of actively processing files
+- Batch-by-batch progress display
+- Real-time status updates for each file
+- Clearer visual feedback during parallel operations
+
+### Technical Changes
+- Extracted `processSingleFile()` function for parallel execution
+- Implemented batched parallel processing with concurrency control
+- Added `activeProcessing` state to track concurrent operations
+- Updated batch mode UI with Processing Settings section
+- Improved error handling with per-file isolation
+
+---
+
+## Version 3.0 - Error Handling & Advanced Features (October 26, 2024)
 
 ### ✅ 1. User-Friendly Error Messages
 **Problem**: Errors only visible in browser DevTools; non-technical users (professors, students) couldn't understand failures

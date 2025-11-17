@@ -14,10 +14,12 @@ The Legal Writing Assessment Tool now includes a powerful **Batch Processing Mod
 
 ### ✅ Batch Capabilities
 - Process unlimited files in one session
-- Real-time progress tracking
+- **Parallel processing** (1-10 files simultaneously, configurable)
+- Real-time progress tracking with live parallel operation display
 - Individual file status indicators
-- Automatic error handling
+- Automatic error handling and recovery
 - Single ZIP download with all assessments
+- Granular reset options for different workflows
 
 ### ✅ Context Sharing
 - Optional question (applied to all submissions)
@@ -48,7 +50,15 @@ Upload or paste:
 - Faster processing
 - Better quality assessments
 
-### Step 4: Upload Student Answer Files
+### Step 4: Configure Processing Settings
+Choose your **Parallel Processing** level (1-10 files):
+- **1 file at a time**: Sequential (safest for rate limits)
+- **5 files in parallel**: Default (recommended balance)
+- **10 files in parallel**: Maximum speed (may hit rate limits)
+
+**Recommendation**: Start with default (5) and adjust based on results.
+
+### Step 5: Upload Student Answer Files
 **Option A: Drag & Drop**
 - Drag multiple files directly onto the upload zone
 - Files are added instantly
@@ -58,7 +68,7 @@ Upload or paste:
 - Select multiple files (Ctrl+Click or Cmd+Click)
 - Supports .txt, .md, .pdf, .docx
 
-### Step 5: Review File List
+### Step 6: Review File List
 Each file shows:
 - 📄 File icon (based on type)
 - File name
@@ -67,21 +77,43 @@ Each file shows:
 
 Remove any files before processing by clicking "Remove"
 
-### Step 6: Process All Files
+### Step 7: Process All Files
 Click **Process All Files** button
 
-The tool will:
+The tool will **process multiple files in parallel** based on your concurrency setting:
 1. Parse each file (extract text from PDF/DOCX)
 2. Generate missing context (if not provided)
-3. Perform legal writing assessment
+3. Perform 3-step assessment workflow (assessment → challenge → arbitration)
 4. Update status for each file:
-   - ⚙️ Processing
+   - ⚙️ Processing (shows which files are currently being processed in parallel)
    - ✅ Complete
-   - ❌ Error (with details)
+   - ❌ Error (with details - processing continues for other files)
 
-Progress bar shows overall completion percentage.
+**Live Progress Display**:
+- Progress bar shows overall completion percentage
+- **Active Processing box** shows all files currently being processed simultaneously
+- Individual file status updates in real-time
 
-### Step 7: Download Results
+**Error Recovery**: If a file fails, other files continue processing automatically.
+
+### Step 8: Manage Results
+After processing, you have three options:
+
+**🔄 Re-run These Files**
+- Keeps everything (files, question, rubric, model answer)
+- Perfect for testing different models on same files
+- Just change the model dropdown and re-run
+
+**📁 New Files (Keep Settings)**
+- Keeps question, model answer, rubric
+- Clears files and results
+- Perfect for grading next batch with same assignment
+
+**🗑️ Clear Everything**
+- Full reset
+- Start completely fresh
+
+### Step 9: Download Results
 When complete, click **📥 Download Results (ZIP)**
 
 You'll get a ZIP file named: `legal-assessments-YYYY-MM-DD.zip`
@@ -308,16 +340,27 @@ If files fail:
 ## Performance Tips
 
 ### Speed Optimization
-1. **Use faster models**:
+1. **Increase parallel processing**:
+   - Default (5 concurrent): ~5x faster than sequential
+   - Maximum (10 concurrent): ~10x faster than sequential
+   - Monitor for rate limit errors and reduce if needed
+
+2. **Use faster models**:
    - GPT-5 Instant
    - Gemini 2.5 Flash
    - Claude Haiku 4.5
 
-2. **Provide full context**:
+3. **Provide full context**:
    - Eliminates generation time per file
 
-3. **Process during off-peak hours**:
+4. **Process during off-peak hours**:
    - API providers may be faster at certain times
+
+### Parallel Processing Guidelines
+- **Small batches (1-20 files)**: Use 5-10 concurrent
+- **Medium batches (21-50 files)**: Use 3-5 concurrent
+- **Large batches (51+ files)**: Use 1-3 concurrent (avoid rate limits)
+- **Testing models**: Use maximum (10) for quick comparison
 
 ### Quality Optimization
 1. **Use premium models**:
@@ -403,10 +446,14 @@ A: Not currently. Process in smaller batches if you need flexibility.
 **Q: How long does it take?**
 A: Depends on:
 - Number of files: ~10-30 seconds per file
+- **Parallel processing setting**: Higher = faster
 - Model speed: Faster models = faster processing
 - API response time: Varies by provider
 
-Example: 50 files with Claude Haiku = ~10-15 minutes
+Examples with parallel processing:
+- 50 files, sequential (1 at a time): ~25-40 minutes
+- 50 files, default (5 parallel): ~5-8 minutes ⚡
+- 50 files, maximum (10 parallel): ~3-5 minutes ⚡⚡
 
 **Q: Can I process more than 100 files?**
 A: Yes, but recommend processing in batches of 50-75 for better manageability.

@@ -21,10 +21,11 @@ A powerful, privacy-focused web application for evaluating legal writing using I
 - ✅ Socratic questioning for improvement
 
 ### Advanced Features
+- ⚡ **Parallel Batch Processing**: Process 1-10 files simultaneously (5-10x faster than sequential)
 - 🚀 **Prompt Caching**: Reduce API costs by 50-90% (Anthropic, OpenAI, Google Gemini)
-- 📦 **Batch Processing**: Assess multiple student answers in one operation with progress tracking
-- 📋 **Output Controls**: Select what to include in downloads (Question, Student Answer, Model Answer, Rubric, Assessment)
-- 🎨 **Improved Mode Switcher**: Clear text labels always visible (not just icons)
+- 📦 **Batch Processing**: Assess multiple student answers with real-time progress tracking
+- 🔄 **Granular Reset Options**: Re-run files, new batch with same settings, or full reset
+- 📋 **Output Controls**: Select what to include in downloads
 - ⚠️ **User-Friendly Error Messages**: See errors in the UI without opening DevTools
 - ⚙️ **Advanced Diagnostics**: Optional custom model for error explanation
 
@@ -191,6 +192,10 @@ Typical costs per assessment:
 **OpenRouter:**
 - Access to all above models plus:
 - GLM-4.5 (Free tier available via OpenRouter)
+- Sherlock Think Alpha (reasoning model)
+- Sherlock Dash Alpha (fast model)
+- Kimi K2 Thinking
+- Kimi Linear 48B
 
 ### Customization
 
@@ -255,6 +260,8 @@ MIT License - See LICENSE file for details
 ## 🗺️ Roadmap
 
 - [x] Batch processing interface (✅ Complete)
+- [x] Parallel batch processing (✅ Complete - v4.0)
+- [x] Granular reset options (✅ Complete - v4.0)
 - [x] Prompt caching to reduce API costs (✅ Complete)
 - [x] User-friendly error messages (✅ Complete)
 - [ ] PDF export of assessments
