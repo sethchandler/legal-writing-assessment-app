@@ -88,6 +88,8 @@
             const [processedCount, setProcessedCount] = useState(0);
             const [totalCount, setTotalCount] = useState(0);
             const [batchResults, setBatchResults] = useState([]);
+            const [concurrencyLimit, setConcurrencyLimit] = useState(5);
+            const [activeProcessing, setActiveProcessing] = useState([]); // Track currently processing files
             const fileInputRef = useRef(null);
             const jsonFileInputRef = useRef(null);
             
@@ -954,7 +956,106 @@ Provide a comprehensive assessment that follows the response template and tailor
                 }
             };
 
-            // Batch mode processing
+            // Process a single file (extracted for parallel processing)
+            const processSingleFile = async (fileInfo, index) => {
+                try {
+                    // Update file status to processing
+                    setBatchFiles(prev => prev.map((f, idx) =>
+                        idx === index ? { ...f, status: 'processing' } : f
+                    ));
+
+                    // Add to active processing list
+                    setActiveProcessing(prev => [...prev, fileInfo.name]);
+
+                    // Parse file
+                    let studentAnswer;
+                    try {
+                        studentAnswer = await parseFile(fileInfo.file);
+                    } catch (parseErr) {
+                        throw new Error(`Failed to parse file: ${parseErr.message}`);
+                    }
+
+                    // Generate missing fields
+                    let completeData;
+                    try {
+                        completeData = await generateMissingFields(studentAnswer);
+                    } catch (genErr) {
+                        throw new Error(`Failed to generate assessment fields: ${genErr.message}`);
+                    }
+
+                    // Perform complete 3-step assessment workflow
+                    let assessment;
+                    try {
+                        console.log(`Batch: Starting 3-step workflow for ${fileInfo.name}`);
+
+                        // Step 1: Initial assessment
+                        const initialAssessment = await performSingleAssessment(completeData);
+                        console.log(`Batch: Initial assessment complete for ${fileInfo.name}`);
+
+                        // Step 2: Challenge (student advocate)
+                        const challenge = await performChallenge(completeData, initialAssessment);
+                        console.log(`Batch: Challenge complete for ${fileInfo.name}`);
+
+                        // Step 3: Arbitration
+                        const arbitration = await performArbitration(completeData, initialAssessment, challenge);
+                        console.log(`Batch: Arbitration complete for ${fileInfo.name}`);
+
+                        // Store all results in proper format
+                        assessment = {
+                            original: initialAssessment,
+                            challenge: challenge,
+                            arbitration: arbitration
+                        };
+                        console.log(`Batch: Complete assessment created for ${fileInfo.name}`);
+                    } catch (assessErr) {
+                        throw new Error(`Failed to perform assessment: ${assessErr.message}`);
+                    }
+
+                    // Update file status to complete
+                    setBatchFiles(prev => prev.map((f, idx) =>
+                        idx === index ? { ...f, status: 'complete', result: assessment } : f
+                    ));
+
+                    // Remove from active processing list
+                    setActiveProcessing(prev => prev.filter(name => name !== fileInfo.name));
+
+                    // Update progress
+                    setProcessedCount(prev => prev + 1);
+
+                    return {
+                        fileName: fileInfo.name,
+                        assessment,
+                        data: completeData,
+                        success: true
+                    };
+
+                } catch (err) {
+                    console.error(`Error processing ${fileInfo.name}:`, err);
+
+                    // Translate error to user-friendly message
+                    const errorTranslation = await translateError(err);
+
+                    // Update file status to error
+                    setBatchFiles(prev => prev.map((f, idx) =>
+                        idx === index ? { ...f, status: 'error', error: errorTranslation.friendly, rawError: errorTranslation.raw } : f
+                    ));
+
+                    // Remove from active processing list
+                    setActiveProcessing(prev => prev.filter(name => name !== fileInfo.name));
+
+                    // Update progress
+                    setProcessedCount(prev => prev + 1);
+
+                    return {
+                        fileName: fileInfo.name,
+                        error: errorTranslation.friendly,
+                        rawError: errorTranslation.raw,
+                        success: false
+                    };
+                }
+            };
+
+            // Batch mode processing with parallel execution
             const processBatchMode = async () => {
                 if (!apiKey) {
                     setError('Please provide an API key first');
@@ -972,105 +1073,50 @@ Provide a comprehensive assessment that follows the response template and tailor
                 setProcessedCount(0);
                 setTotalCount(batchFiles.length);
                 setBatchResults([]);
+                setActiveProcessing([]);
 
                 try {
                     const results = [];
-                    
-                    for (let i = 0; i < batchFiles.length; i++) {
-                        const fileInfo = batchFiles[i];
-                        setCurrentlyProcessing(fileInfo.name);
-                        setProcessedCount(i);
-                        setStatusMessage(`Processing ${i + 1} of ${batchFiles.length}: ${fileInfo.name}`);
-                        
-                        // Update file status
-                        setBatchFiles(prev => prev.map((f, idx) => 
-                            idx === i ? { ...f, status: 'processing' } : f
-                        ));
 
-                        try {
-                            // Parse file
-                            let studentAnswer;
-                            try {
-                                studentAnswer = await parseFile(fileInfo.file);
-                            } catch (parseErr) {
-                                throw new Error(`Failed to parse file: ${parseErr.message}`);
+                    // Process files in batches with concurrency limit
+                    for (let i = 0; i < batchFiles.length; i += concurrencyLimit) {
+                        const batch = batchFiles.slice(i, i + concurrencyLimit);
+                        const batchIndices = Array.from({ length: batch.length }, (_, idx) => i + idx);
+
+                        setStatusMessage(`Processing batch ${Math.floor(i / concurrencyLimit) + 1} of ${Math.ceil(batchFiles.length / concurrencyLimit)} (${concurrencyLimit} files in parallel)`);
+
+                        // Process batch in parallel using Promise.allSettled for error recovery
+                        const batchPromises = batch.map((fileInfo, idx) =>
+                            processSingleFile(fileInfo, batchIndices[idx])
+                        );
+
+                        const batchResults = await Promise.allSettled(batchPromises);
+
+                        // Extract results (Promise.allSettled always resolves)
+                        batchResults.forEach(result => {
+                            if (result.status === 'fulfilled') {
+                                results.push(result.value);
+                            } else {
+                                // This should rarely happen as errors are caught in processSingleFile
+                                console.error('Unexpected promise rejection:', result.reason);
+                                results.push({
+                                    fileName: 'Unknown',
+                                    error: 'Unexpected error: ' + result.reason?.message,
+                                    rawError: String(result.reason),
+                                    success: false
+                                });
                             }
+                        });
 
-                            // Generate missing fields
-                            let completeData;
-                            try {
-                                completeData = await generateMissingFields(studentAnswer);
-                            } catch (genErr) {
-                                throw new Error(`Failed to generate assessment fields: ${genErr.message}`);
-                            }
-
-                            // Perform complete 3-step assessment workflow
-                            let assessment;
-                            try {
-                                console.log(`Batch: Starting 3-step workflow for ${fileInfo.name}`);
-
-                                // Step 1: Initial assessment
-                                const initialAssessment = await performSingleAssessment(completeData);
-                                console.log(`Batch: Initial assessment complete for ${fileInfo.name}`);
-
-                                // Step 2: Challenge (student advocate)
-                                const challenge = await performChallenge(completeData, initialAssessment);
-                                console.log(`Batch: Challenge complete for ${fileInfo.name}`);
-
-                                // Step 3: Arbitration
-                                const arbitration = await performArbitration(completeData, initialAssessment, challenge);
-                                console.log(`Batch: Arbitration complete for ${fileInfo.name}`);
-
-                                // Store all results in proper format
-                                assessment = {
-                                    original: initialAssessment,
-                                    challenge: challenge,
-                                    arbitration: arbitration
-                                };
-                                console.log(`Batch: Complete assessment created for ${fileInfo.name}`);
-                            } catch (assessErr) {
-                                throw new Error(`Failed to perform assessment: ${assessErr.message}`);
-                            }
-
-                            results.push({
-                                fileName: fileInfo.name,
-                                assessment,
-                                data: completeData,
-                                success: true
-                            });
-
-                            // Update file status to complete
-                            setBatchFiles(prev => prev.map((f, idx) =>
-                                idx === i ? { ...f, status: 'complete', result: assessment } : f
-                            ));
-
-                        } catch (err) {
-                            console.error(`Error processing ${fileInfo.name}:`, err);
-
-                            // Translate error to user-friendly message
-                            const errorTranslation = await translateError(err);
-
-                            results.push({
-                                fileName: fileInfo.name,
-                                error: errorTranslation.friendly,
-                                rawError: errorTranslation.raw,
-                                success: false
-                            });
-
-                            // Update file status to error
-                            setBatchFiles(prev => prev.map((f, idx) =>
-                                idx === i ? { ...f, status: 'error', error: errorTranslation.friendly, rawError: errorTranslation.raw } : f
-                            ));
-                        }
-
-                        setProcessingProgress(((i + 1) / batchFiles.length) * 100);
-                        setProcessedCount(i + 1);
+                        // Update overall progress
+                        const completed = Math.min(i + concurrencyLimit, batchFiles.length);
+                        setProcessingProgress((completed / batchFiles.length) * 100);
                     }
 
                     setBatchResults(results);
-                    setCurrentlyProcessing('');
+                    setActiveProcessing([]);
                     setStatusMessage(`✓ Completed: ${results.filter(r => r.success).length} successful, ${results.filter(r => !r.success).length} errors`);
-                    
+
                 } catch (err) {
                     setError(err.message);
                 } finally {
@@ -2041,6 +2087,32 @@ Generated: ${new Date().toISOString()}
                             </div>
 
                             <div className="section">
+                                <div className="section-title">Processing Settings</div>
+                                <label>Parallel Processing (Concurrency Limit)</label>
+                                <select
+                                    value={concurrencyLimit}
+                                    onChange={(e) => setConcurrencyLimit(parseInt(e.target.value))}
+                                    disabled={loading}
+                                    style={{marginBottom: '10px'}}
+                                >
+                                    <option value="1">1 file at a time (Sequential)</option>
+                                    <option value="2">2 files in parallel</option>
+                                    <option value="3">3 files in parallel</option>
+                                    <option value="4">4 files in parallel</option>
+                                    <option value="5">5 files in parallel (Default)</option>
+                                    <option value="6">6 files in parallel</option>
+                                    <option value="7">7 files in parallel</option>
+                                    <option value="8">8 files in parallel</option>
+                                    <option value="9">9 files in parallel</option>
+                                    <option value="10">10 files in parallel (Maximum)</option>
+                                </select>
+                                <div style={{marginTop: '10px', padding: '12px', background: '#e6f3ff', border: '1px solid #66b3ff', borderRadius: '6px', fontSize: '13px', color: '#0066cc'}}>
+                                    ⚡ <strong>Parallel processing</strong> speeds up batch grading by processing multiple files simultaneously.
+                                    Higher concurrency = faster completion, but may hit API rate limits. Default (5) balances speed and reliability.
+                                </div>
+                            </div>
+
+                            <div className="section">
                                 <div className="section-title">
                                     Student Answer Files <span className="required">*</span>
                                 </div>
@@ -2114,9 +2186,18 @@ Generated: ${new Date().toISOString()}
                                     <div className="progress-text">
                                         <strong>{processedCount} of {totalCount} completed</strong>
                                         <br/>
-                                        Currently processing: {currentlyProcessing}
-                                        <br/>
                                         <span className="timer-display">⏱ Elapsed: {formatTime(elapsedTime)}</span>
+                                        <br/>
+                                        {activeProcessing.length > 0 && (
+                                            <div style={{marginTop: '10px', padding: '10px', background: '#fff9e6', border: '1px solid #ffd633', borderRadius: '6px'}}>
+                                                <strong>⚙️ Processing {activeProcessing.length} file{activeProcessing.length > 1 ? 's' : ''} in parallel:</strong>
+                                                <ul style={{marginTop: '8px', marginBottom: '0', paddingLeft: '20px', fontSize: '13px'}}>
+                                                    {activeProcessing.map((fileName, idx) => (
+                                                        <li key={idx} style={{marginBottom: '4px'}}>{fileName}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
                                     </div>
                                     {statusMessage && (
                                         <div className="status-message" style={{marginTop: '15px'}}>
