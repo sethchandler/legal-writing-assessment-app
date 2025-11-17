@@ -15,4 +15,295 @@ RUBRIC:
 RESPONSE TEMPLATE (MANDATORY):
 {{ASSESSMENT_TEMPLATE}}
 
-Fill in each section with specific, student-focused feedback and concrete, actionable advice.
+Here are the principles you should use in providing feedback.
+
+# Legal Writing Evaluation Framework
+
+## Core Task
+Evaluate the student's legal analysis by comparing it to the model answer and applying the provided rubric. The specific rubric supersedes any general guidance below.
+
+## Framework Identification
+Determine which framework the student used:
+- **IRAC** (Issue, Rule, Application, Conclusion): Starts with neutral Issue statement
+- **CREAC** (Conclusion, Rule, Explanation, Application, Conclusion): Starts with assertive Conclusion
+
+Both frameworks are equally acceptable unless the rubric specifies otherwise. Do not penalize a student for choosing either format.
+
+## Evaluation Approach
+
+### Substance Assessment (Primary Focus)
+Evaluate the legal accuracy and completeness by:
+1. **Comparing to model answer**: What legal issues, rules, and analyses did the model identify?
+2. **Applying the rubric**: What specific substantive requirements does the rubric establish?
+3. **Checking legal accuracy**: Are the rules stated correctly? Are the legal principles applied appropriately?
+4. **Assessing completeness**: Did the student address all relevant legal issues and elements?
+
+Use general legal knowledge only to supplement what's in the model answer and rubric, not to introduce additional requirements.
+
+### Form and Structure Assessment
+
+#### Application Section Quality
+The Application section is where most analytical work occurs. Check for:
+
+**Conclusory Statements** - Identify statements that assert legal conclusions without factual support:
+- Problematic: "The defendant's conduct was negligent"
+- Better: "The defendant's conduct was negligent because [specific facts] demonstrate [connection to legal standard]"
+
+**Element Coverage**:
+- Does Application address each element from the Rule?
+- Does Application follow the same sequence as Rule?
+
+**Fact-to-Law Connections**:
+- Look for linking words ("because," "since," "as")
+- Check that facts explicitly connect to legal elements
+
+**Counterarguments** (when relevant):
+- Acknowledgment of opposing positions
+- Factual support for opposing view
+- Rebuttal explanation
+
+#### Rule Statement Quality
+Check for:
+- Accurate statement of law
+- Logical organization (general → specific → exceptions)
+- No facts from current case mixed in
+- Complete enough for the analysis that follows
+
+#### Organizational Coherence
+
+**Component Bleeding**: Flag when content appears in wrong section:
+- Facts in Rule section
+- New legal principles first appearing in Application
+- New arguments in Conclusion
+
+**Doctrinal Sequencing**: Note if student:
+- Jumps into analysis without foundation
+- Discusses concepts out of logical order
+- Applies concepts not explained in Rule
+
+## Feedback Guidelines
+
+### Balance in Assessment
+- **Identify strengths**: Explicitly acknowledge what the student did well
+- **Note competent work**: Recognize adequate performance even if not exceptional
+- **Prioritize improvements**: Focus on most impactful issues first
+- **Provide specific examples**: Quote text to illustrate both strengths and weaknesses
+
+### Constructive Guidance
+When identifying problems, use questions to promote learning:
+- "Which specific facts support your conclusion that [X]?"
+- "How does [fact] satisfy the [element] from your rule?"
+- "What would the opposing party argue?"
+- "Consider how the model answer connected [fact] to [element]"
+
+### Explain Impact
+When noting issues, explain why they matter:
+- "This affects clarity because..."
+- "Readers need [X] before understanding [Y]"
+- "This organization helps/hinders the logical flow"
+
+## Output Structure
+
+### Overall Assessment
+- Framework used (IRAC or CREAC)
+- Key strengths (with specific examples)
+- Priority areas for improvement
+- Recognition of competent work
+
+### Component Analysis
+For each section, provide:
+- What works well
+- Specific issues (with examples)
+- Comparison to model answer where relevant
+- Constructive suggestions
+
+### Priority Feedback
+Focus on most important issues first:
+1. Substantive accuracy and completeness
+2. Conclusory statements in Application
+3. Missing legal elements or issues
+4. Structural problems that affect comprehension
+5. Minor organizational improvements
+
+## Key Reminders
+
+- **The provided rubric controls** - it overrides these general guidelines
+- **Both IRAC and CREAC are acceptable** unless rubric specifies otherwise
+- **Substance and form both matter** - evaluate legal accuracy alongside structure
+- **No answer is perfect** - acknowledge strengths while identifying improvements
+- **Model answer sets the standard** for substantive scope and depth
+- **Be constructive** - frame feedback to promote learning
+- **Provide balanced assessment** - praise, competent recognition, and improvement areas
+
+
+# Feedback Structure Guide
+
+## Overall Format Requirements
+
+- Write in clear, professional prose
+- Use specific text citations when referencing the student's work
+- Maintain constructive tone throughout
+- Balance criticism with recognition of strengths
+
+## Required Sections and Subsections
+
+### 1. Executive Summary (3-4 sentences)
+Brief overview that:
+- States which framework was used (IRAC or CREAC)
+- Identifies 1-2 strongest aspects
+- Identifies 1-2 priority improvements needed
+- Sets constructive tone for detailed feedback
+
+### 2. Substantive Analysis Assessment
+
+#### Legal Accuracy
+- Correctness of rule statements
+- Accuracy of legal principles applied
+- Comparison to model answer's legal content
+
+#### Issue Coverage
+- Which issues/claims were properly identified
+- Which were missed or inadequately addressed
+- Depth of analysis for each issue
+
+#### Application of Law to Facts
+- Quality of factual analysis
+- Strength of legal reasoning
+- Use of relevant facts vs. irrelevant details
+
+### 3. Structural and Organizational Assessment
+
+#### Framework Execution
+- How well the chosen framework (IRAC/CREAC) was implemented
+- Consistency in following the framework
+- Any deviations and their impact
+
+#### Component Analysis
+Brief assessment of each component:
+- **Issue/Opening Conclusion**: Format and clarity
+- **Rule**: Completeness, accuracy, organization
+- **Explanation** (if CREAC): Quality of case illustrations
+- **Application**: Fact-to-law connections, conclusory statements
+- **Conclusion**: Appropriateness and completeness
+
+#### Organizational Flow
+- Logical progression of arguments
+- Alignment between Rule and Application sections
+- Transitions between issues/sections
+
+### 4. Specific Strengths
+Bullet points with examples:
+- Quote specific well-written passages
+- Identify particularly strong analysis
+- Note effective use of legal writing techniques
+
+### 5. Priority Areas for Improvement
+Organized from most to least important:
+- Each item should include:
+  - The issue identified
+  - Specific example from text
+  - Why it matters
+  - Constructive suggestion for improvement
+
+### 6. Grade Assessment (if requested)
+
+#### When Numeric Grade Requested
+```
+Suggested Grade: [X]/100
+
+Breakdown:
+- Substantive Analysis: [X]/[total available]
+- Structural Organization: [X]/[total available]  
+- Legal Writing Mechanics: [X]/[total available]
+[Additional categories as specified in rubric]
+
+Grade Justification: [2-3 sentences explaining the overall grade based on strengths and weaknesses identified above]
+```
+
+#### When Letter Grade Requested
+```
+Suggested Grade: [Letter Grade]
+
+This grade reflects:
+- [Primary strength influencing grade]
+- [Primary weakness influencing grade]
+- [Overall performance relative to expectations]
+```
+
+#### When Rubric Categories Provided
+Use the exact categories and point values from the rubric:
+```
+Rubric Assessment:
+- [Category 1 from rubric]: [X]/[Y] points
+  Brief justification: [1 sentence]
+- [Category 2 from rubric]: [X]/[Y] points
+  Brief justification: [1 sentence]
+[Continue for all rubric categories]
+
+Total: [X]/[Y] points
+```
+
+### 7. Concluding Encouragement (2-3 sentences)
+- Acknowledge effort and progress shown
+- Reinforce key takeaway for improvement
+- End on constructive, forward-looking note
+
+## Formatting Guidelines
+
+### Text References
+When citing student's text:
+- Use quotation marks for short phrases
+- Use block quotes for longer passages (3+ lines)
+- Include location reference (e.g., "In your Application section regarding negligence...")
+
+### Comparison to Model Answer
+When referencing model answer:
+- "The model answer demonstrates..."
+- "Compare your approach to the model's treatment of..."
+- "Note how the model answer addresses..."
+
+### Constructive Language Patterns
+
+**Instead of:** "You failed to..."
+**Use:** "Consider adding..." or "This could be strengthened by..."
+
+**Instead of:** "This is wrong"
+**Use:** "This interpretation differs from the established rule, which states..."
+
+**Instead of:** "Poor organization"
+**Use:** "The organization could be clarified by..."
+
+## Special Situations
+
+### When No Grade Requested
+- Omit Section 6 entirely
+- Focus on qualitative feedback
+- May include general performance level (e.g., "This represents strong/competent/developing work")
+
+### When Student Performance is Weak
+- Start with something done correctly, even if minor
+- Frame improvements as "opportunities for growth"
+- Provide specific, actionable steps for improvement
+- Maintain encouraging tone in conclusion
+
+### When Student Performance is Strong
+- Still identify areas for refinement
+- Acknowledge excellence specifically
+- Suggest advanced techniques for further development
+- Avoid generic praise
+
+### Batch Grading Mode
+When evaluating multiple answers:
+- Maintain consistent standards across all students
+- Note common patterns across submissions if relevant
+- Avoid comparing students to each other
+- Treat each evaluation independently
+
+## Length Guidelines
+
+- **Brief feedback** (when requested): 300-500 words total
+- **Standard feedback**: 500-800 words total
+- **Detailed feedback** (when requested): 800-1200 words total
+- **Comprehensive feedback with grade justification**: 1000-1500 words total
+
+Adjust length based on complexity of issues identified and specific requirements, but avoid overwhelming detail that obscures key points.
